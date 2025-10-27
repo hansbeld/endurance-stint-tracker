@@ -271,7 +271,10 @@
                             <div className="text-green-500 font-bold text-xs mb-1 pulse">✓ TARGET</div>
                         )}
                         {raceState.timeRemaining > 0 && raceState.timeRemaining <= 5 * 60 * 1000 && (
-                            <div className="text-red-500 font-bold text-xs mb-1 pulse-fast">⚠ 5 MIN TO MAX!</div>
+                            <div className="text-red-500 font-bold text-xs mb-1 pulse-fast">⚠ 5 MIN TO TARGET!</div>
+                        )}
+                        {raceState.timeInCar >= raceState.maxStintTime && (
+                            <div className="text-red-500 font-bold text-xs mb-1 pulse-fast">⚠ OVER MAX TIME!</div>
                         )}
                         <div className={`orbitron timer-xl ${getTimerColor(raceState.timeInCar, raceState.targetStintTime, raceState.maxStintTime)} ${
                             raceState.timeInCar >= raceState.maxStintTime ? 'pulse-fast' :
