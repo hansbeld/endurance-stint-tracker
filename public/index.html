@@ -299,9 +299,11 @@
                     {/* Time Grid */}
                     <div className="grid grid-cols-2 gap-2 mb-2">
                         <div className="panel p-2 rounded-none text-center">
-                            <div className="text-gray-400 text-xs">STINT LEFT</div>
+                            <div className="text-gray-400 text-xs">
+                                {raceState.timeRemaining <= 0 ? 'OVER TARGET' : 'STINT LEFT'}
+                            </div>
                             <div className={`orbitron timer-md ${raceState.timeRemaining <= 0 ? 'text-red-500' : 'text-green-500'}`}>
-                                {formatTimeShort(raceState.timeRemaining)}
+                                {raceState.timeRemaining <= 0 ? '+' : ''}{formatTimeShort(Math.abs(raceState.timeRemaining))}
                             </div>
                         </div>
                         <div className="panel p-2 rounded-none text-center">
@@ -362,40 +364,6 @@
                         </div>
                     )}
 
-                    {/* Remaining Stints Plan Table */}
-                    {raceState.isRaceActive && raceState.stintsRemaining > 0 && (
-                        <div className="panel p-3 rounded-none mb-2">
-                            <div className="text-cyan-400 text-xs font-bold mb-2">📋 REMAINING STINTS PLAN</div>
-                            <div className="space-y-1">
-                                {Array.from({ length: raceState.stintsRemaining }, (_, i) => {
-                                    const stintNumber = raceState.driverChanges + i + 1;
-                                    const isCurrentStint = i === 0;
-                                    return (
-                                        <div key={i} className={`flex justify-between items-center p-2 rounded ${
-                                            isCurrentStint ? 'bg-cyan-900/30 border-l-2 border-cyan-400' : 'bg-gray-800/30'
-                                        }`}>
-                                            <div className="flex items-center gap-2">
-                                                <span className={`text-xs font-bold ${isCurrentStint ? 'text-cyan-400' : 'text-gray-400'}`}>
-                                                    Stint {stintNumber}
-                                                </span>
-                                                {isCurrentStint && (
-                                                    <span className="text-xs text-cyan-400 font-bold">← CURRENT</span>
-                                                )}
-                                            </div>
-                                            <span className={`orbitron text-sm font-bold ${isCurrentStint ? 'text-cyan-400' : 'text-white'}`}>
-                                                {formatTimeShort(raceState.requiredStintTime)}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                            <div className="mt-2 pt-2 border-t border-gray-700 flex justify-between text-xs">
-                                <span className="text-gray-400">Total Remaining:</span>
-                                <span className="orbitron text-white font-bold">{formatTime(raceState.totalRaceTimeRemaining)}</span>
-                            </div>
-                        </div>
-                    )}
-
                     {/* Controls */}
                     <div className="panel p-2 rounded-none mb-2">
                         <input
@@ -425,6 +393,40 @@
                             <button onClick={endRace} disabled={!raceState.isRaceActive} className="btn rounded-none py-1 bg-red-900">END</button>
                         </div>
                     </div>
+
+                    {/* Remaining Stints Plan Table */}
+                    {raceState.isRaceActive && raceState.stintsRemaining > 0 && (
+                        <div className="panel p-3 rounded-none mb-2 flex-1 flex flex-col overflow-hidden">
+                            <div className="text-cyan-400 text-xs font-bold mb-2">📋 REMAINING STINTS PLAN</div>
+                            <div className="flex-1 overflow-y-auto space-y-1">
+                                {Array.from({ length: raceState.stintsRemaining }, (_, i) => {
+                                    const stintNumber = raceState.driverChanges + i + 1;
+                                    const isCurrentStint = i === 0;
+                                    return (
+                                        <div key={i} className={`flex justify-between items-center p-2 rounded ${
+                                            isCurrentStint ? 'bg-cyan-900/30 border-l-2 border-cyan-400' : 'bg-gray-800/30'
+                                        }`}>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`text-xs font-bold ${isCurrentStint ? 'text-cyan-400' : 'text-gray-400'}`}>
+                                                    Stint {stintNumber}
+                                                </span>
+                                                {isCurrentStint && (
+                                                    <span className="text-xs text-cyan-400 font-bold">← CURRENT</span>
+                                                )}
+                                            </div>
+                                            <span className={`orbitron text-sm font-bold ${isCurrentStint ? 'text-cyan-400' : 'text-white'}`}>
+                                                {formatTimeShort(raceState.requiredStintTime)}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div className="mt-2 pt-2 border-t border-gray-700 flex justify-between text-xs">
+                                <span className="text-gray-400">Total Remaining:</span>
+                                <span className="orbitron text-white font-bold">{formatTime(raceState.totalRaceTimeRemaining)}</span>
+                            </div>
+                        </div>
+                    )}
 
                     {/* History */}
                     <div className="panel p-2 rounded-none flex-1 overflow-hidden">
