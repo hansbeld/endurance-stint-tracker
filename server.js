@@ -40,7 +40,8 @@ carsConfig.cars.forEach(car => {
     driverChanges: 0,
     stintHistory: [],
     simulationMode: false,
-    targetStintReached: false
+    targetStintReached: false,
+    currentStintTargetCalc: 0 // Calculated target for current stint
   };
 });
 
@@ -282,7 +283,8 @@ app.get('/api/race-state/:carNumber', (req, res) => {
     minStintsNeeded: minStintCalc.stintsNeeded, // Safety minimum
     targetStintReached: raceData.targetStintReached,
     simulationMode: raceData.simulationMode,
-    timeMultiplier
+    timeMultiplier,
+    currentStintTargetCalc: raceData.currentStintTargetCalc // Calculated target for current stint
   });
 });
 
@@ -309,6 +311,10 @@ app.post('/api/start-race/:carNumber', (req, res) => {
   raceData.driverChanges = 0;
   raceData.stintHistory = [];
   raceData.targetStintReached = false;
+
+  // Calculate target for the first stint
+  const optimalData = calculateOptimalStint(raceData);
+  raceData.currentStintTargetCalc = optimalData.optimalTime;
 
   res.json({ success: true, message: 'Race started!' });
 });
@@ -357,10 +363,14 @@ app.post('/api/change-driver/:carNumber', (req, res) => {
   raceData.driverChanges++;
   raceData.targetStintReached = false;
 
-  res.json({ 
-    success: true, 
+  // Calculate target for the new stint (do not recalculate later)
+  const optimalData = calculateOptimalStint(raceData);
+  raceData.currentStintTargetCalc = optimalData.optimalTime;
+
+  res.json({
+    success: true,
     message: `Driver changed to ${driverName}`,
-    driverChanges: raceData.driverChanges 
+    driverChanges: raceData.driverChanges
   });
 });
 
