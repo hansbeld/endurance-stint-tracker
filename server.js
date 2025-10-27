@@ -238,37 +238,37 @@ app.get('/api/race-state/:carNumber', (req, res) => {
   let totalRaceTimeElapsed = 0;
   let totalRaceTimeRemaining = raceData.totalRaceTime;
 
+  // Calculate current stint time
   if (raceData.isRaceActive && raceData.stintStartTime && !raceData.isPaused) {
     const realElapsed = currentTime - raceData.stintStartTime;
     timeInCar = realElapsed * timeMultiplier;
-    // Calculate time remaining based on calculated target or target stint time
-    const targetTime = raceData.currentStintTargetCalc > 0 ? raceData.currentStintTargetCalc : raceData.targetStintTime;
-    timeRemaining = targetTime - timeInCar;
-
-    // Check if calculated target is reached
-    if (timeInCar >= targetTime && !raceData.targetStintReached) {
-      raceData.targetStintReached = true;
-    }
   } else if (raceData.isPaused) {
     timeInCar = raceData.pausedTime;
-    // Calculate time remaining based on calculated target or target stint time
-    const targetTime = raceData.currentStintTargetCalc > 0 ? raceData.currentStintTargetCalc : raceData.targetStintTime;
-    timeRemaining = targetTime - timeInCar;
   }
 
+  // Calculate total race time remaining
   if (raceData.raceStartTime && raceData.isRaceActive) {
     const realRaceElapsed = currentTime - raceData.raceStartTime;
     totalRaceTimeElapsed = realRaceElapsed * timeMultiplier;
     totalRaceTimeRemaining = raceData.totalRaceTime - totalRaceTimeElapsed;
   }
 
-  // Calculate remaining stints using planned changes strategy
+  // Calculate remaining stints using planned changes strategy - LIVE CALCULATION
   const plannedCalc = calculatePlannedStrategy(
     raceData.totalRaceTime,
     totalRaceTimeRemaining,
     raceData.driverChanges,
     raceData.plannedChanges
   );
+
+  // Now calculate time remaining using LIVE calculated target
+  const liveTargetTime = plannedCalc.requiredStintTime > 0 ? plannedCalc.requiredStintTime : raceData.targetStintTime;
+  timeRemaining = liveTargetTime - timeInCar;
+
+  // Check if calculated target is reached
+  if (raceData.isRaceActive && timeInCar >= liveTargetTime && !raceData.targetStintReached) {
+    raceData.targetStintReached = true;
+  }
   
   // Also calculate minimum stints based on target time
   const minStintCalc = calculateRemainingStints(totalRaceTimeRemaining, raceData.targetStintTime);
@@ -283,13 +283,13 @@ app.get('/api/race-state/:carNumber', (req, res) => {
     totalRaceTimeElapsed,
     optimal: optimalStintData,
     stintsRemaining: plannedCalc.stintsRemaining, // Based on planned changes
-    requiredStintTime: plannedCalc.requiredStintTime, // Based on planned changes
+    requiredStintTime: plannedCalc.requiredStintTime, // Based on planned changes - UPDATES LIVE
     changesRemaining: plannedCalc.changesRemaining, // New field
     minStintsNeeded: minStintCalc.stintsNeeded, // Safety minimum
     targetStintReached: raceData.targetStintReached,
     simulationMode: raceData.simulationMode,
     timeMultiplier,
-    currentStintTargetCalc: raceData.currentStintTargetCalc // Calculated target for current stint
+    currentStintTargetCalc: plannedCalc.requiredStintTime // Live calculated target - UPDATES LIVE
   });
 });
 
@@ -316,15 +316,6 @@ app.post('/api/start-race/:carNumber', (req, res) => {
   raceData.driverChanges = 0;
   raceData.stintHistory = [];
   raceData.targetStintReached = false;
-
-  // Calculate target for the first stint - evenly distribute remaining time across remaining stints
-  const plannedCalc = calculatePlannedStrategy(
-    raceData.totalRaceTime,
-    raceData.totalRaceTime, // Full race time at start
-    0, // No driver changes yet
-    raceData.plannedChanges
-  );
-  raceData.currentStintTargetCalc = plannedCalc.requiredStintTime;
 
   res.json({ success: true, message: 'Race started!' });
 });
@@ -372,21 +363,6 @@ app.post('/api/change-driver/:carNumber', (req, res) => {
   raceData.pausedTime = 0;
   raceData.driverChanges++;
   raceData.targetStintReached = false;
-
-  // Calculate target for the new stint - evenly distribute remaining time across remaining stints
-  const currentTime = Date.now();
-  const timeMultiplier = raceData.simulationMode ? 60 : 1;
-  const realRaceElapsed = currentTime - raceData.raceStartTime;
-  const totalRaceTimeElapsed = realRaceElapsed * timeMultiplier;
-  const totalRaceTimeRemaining = raceData.totalRaceTime - totalRaceTimeElapsed;
-
-  const plannedCalc = calculatePlannedStrategy(
-    raceData.totalRaceTime,
-    totalRaceTimeRemaining,
-    raceData.driverChanges,
-    raceData.plannedChanges
-  );
-  raceData.currentStintTargetCalc = plannedCalc.requiredStintTime;
 
   res.json({
     success: true,
