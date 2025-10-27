@@ -245,7 +245,8 @@ app.get('/api/race-state/:carNumber', (req, res) => {
     const targetTime = raceData.currentStintTargetCalc > 0 ? raceData.currentStintTargetCalc : raceData.targetStintTime;
     timeRemaining = targetTime - timeInCar;
 
-    if (timeInCar >= raceData.targetStintTime && !raceData.targetStintReached) {
+    // Check if calculated target is reached
+    if (timeInCar >= targetTime && !raceData.targetStintReached) {
       raceData.targetStintReached = true;
     }
   } else if (raceData.isPaused) {

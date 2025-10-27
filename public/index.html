@@ -264,14 +264,17 @@
                     <div className={`panel p-3 rounded-none mb-2 ${
                         raceState.targetStintReached ? 'border-2 border-green-500' : ''
                     } ${
-                        raceState.timeRemaining > 0 && raceState.timeRemaining <= 5 * 60 * 1000 ? 'blink-red border-2' : ''
+                        raceState.timeInCar >= raceState.maxStintTime - 5 * 60 * 1000 ? 'blink-red border-2' : ''
                     }`}>
                         <div className="text-gray-400 text-xs mb-1">TIME IN CAR</div>
-                        {raceState.targetStintReached && (
+                        {raceState.targetStintReached && raceState.timeInCar < raceState.maxStintTime - 5 * 60 * 1000 && (
                             <div className="text-green-500 font-bold text-xs mb-1 pulse">✓ TARGET</div>
                         )}
-                        {raceState.timeRemaining > 0 && raceState.timeRemaining <= 5 * 60 * 1000 && (
-                            <div className="text-red-500 font-bold text-xs mb-1 pulse-fast">⚠ 5 MIN TO TARGET!</div>
+                        {raceState.timeRemaining > 0 && raceState.timeRemaining <= 5 * 60 * 1000 && raceState.timeInCar < raceState.maxStintTime - 5 * 60 * 1000 && (
+                            <div className="text-yellow-400 font-bold text-xs mb-1 pulse">⚠ 5 MIN TO TARGET!</div>
+                        )}
+                        {raceState.timeInCar >= raceState.maxStintTime - 5 * 60 * 1000 && raceState.timeInCar < raceState.maxStintTime && (
+                            <div className="text-red-500 font-bold text-xs mb-1 pulse-fast">⚠ 5 MIN TO MAX!</div>
                         )}
                         {raceState.timeInCar >= raceState.maxStintTime && (
                             <div className="text-red-500 font-bold text-xs mb-1 pulse-fast">⚠ OVER MAX TIME!</div>
