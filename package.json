@@ -1,0 +1,13 @@
+{
+  "name": "endurance-race-tracker",
+  "version": "1.0.0",
+  "description": "Endurance race stint tracking application",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

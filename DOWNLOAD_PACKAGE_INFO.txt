@@ -1,0 +1,282 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║           ENDURANCE RACE STINT TRACKER - DOWNLOAD PACKAGE INFO             ║
+║                                                                            ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+PACKAGE SUMMARY
+═══════════════
+
+✓ endurance-race-tracker.zip (45 KB) - For Windows users
+✓ endurance-race-tracker.tar.gz (37 KB) - For Mac/Linux users
+
+Both archives contain identical files. Choose based on your platform.
+
+
+WHAT'S INCLUDED
+═══════════════
+
+Application Files (3):
+  • server.js               Backend Node.js/Express server
+  • package.json            Project configuration & dependencies  
+  • public/index.html       Frontend web interface
+
+Documentation Files (9):
+  • START_HERE.txt          ⭐ READ THIS FIRST!
+  • DOWNLOAD_README.txt     Package welcome & overview
+  • INSTALL.md              Detailed installation for all platforms
+  • QUICKSTART.md           5-minute getting started guide
+  • README.md               Complete user manual
+  • FEATURES.md             Full feature documentation
+  • INDEX.md                Documentation navigation guide
+  • OPTIMAL_STINT_GUIDE.md  Calculator methodology explained
+  • OPTIMAL_ALGORITHM.txt   Visual algorithm flowchart
+  • EXAMPLE_RACE.md         Complete race walkthrough with data
+
+Total Files: 16 files + public/ directory
+
+
+INSTALLATION
+════════════
+
+Quick Install (3 steps):
+  1. Extract the archive
+  2. Run: npm install
+  3. Run: npm start
+  4. Open: http://localhost:3000
+
+Prerequisites:
+  • Node.js v14+ (download from nodejs.org)
+  • Modern web browser
+
+Detailed Instructions:
+  → See INSTALL.md for platform-specific guides
+
+
+FEATURES HIGHLIGHT
+══════════════════
+
+✓ Real-Time Stint Tracking
+  • Live timers (updates every second)
+  • Color-coded warnings (green/orange/red)
+  • Pause/resume functionality
+  • Complete stint history
+
+✓ Optimal Stint Calculator (NEW!)
+  • Learns from performance data
+  • Calculates ideal stint time
+  • Strategic recommendations
+  • Confidence scoring (50-100%)
+  • Performance analytics dashboard
+
+✓ Configurable Settings
+  • Target stint: 30 min (default)
+  • Max stint: 45 min (default)
+  • Total race: 6 hours (default)
+  • Max changes: 12 (default)
+
+✓ Driver Management
+  • Unlimited drivers
+  • Auto-records stints on change
+  • Tracks change count
+  • Current driver display
+
+
+HOW THE OPTIMAL CALCULATOR WORKS
+═════════════════════════════════
+
+After each completed stint, the calculator:
+
+1. Analyzes Performance
+   • Average stint time
+   • Consistency score
+   • Recent trends
+
+2. Calculates Requirements
+   • Remaining race time
+   • Remaining driver changes
+   • Time needed per stint
+
+3. Provides Recommendation
+   • Weighted formula: 60% performance + 40% requirements
+   • Strategic advice (extend/maintain/shorten stints)
+   • Confidence level based on data quality
+
+Example Output:
+  ┌─────────────────────────────────────────────┐
+  │ Recommended: 32:15                          │
+  │ "Maintain current pace - on track"          │
+  │ Confidence: 85%                             │
+  │                                              │
+  │ Performance:                                │
+  │ • Average: 31:30                            │
+  │ • Consistency: 88%                          │
+  │ • At Target: 7/9 stints                     │
+  └─────────────────────────────────────────────┘
+
+
+DOCUMENTATION QUICK REFERENCE
+══════════════════════════════
+
+Problem?                    → Read This
+────────────────────────────────────────────
+First time user             → START_HERE.txt
+Need to install             → INSTALL.md
+Want quick start            → QUICKSTART.md
+Understand features         → FEATURES.md
+Learn the calculator        → OPTIMAL_STINT_GUIDE.md
+See real example            → EXAMPLE_RACE.md
+Complete reference          → README.md
+Lost in docs                → INDEX.md
+
+
+SYSTEM REQUIREMENTS
+═══════════════════
+
+Minimum:
+  • Node.js: v14.0.0+
+  • RAM: 50 MB
+  • Disk: 100 MB (with dependencies)
+  • Browser: Chrome/Firefox/Safari/Edge (modern)
+  • OS: Windows 10+, macOS 10.13+, Linux
+
+Recommended:
+  • Node.js: v18 LTS or v20 LTS
+  • RAM: 100 MB
+  • Disk: 200 MB
+  • Browser: Latest Chrome or Firefox
+
+
+PERFECT FOR
+════════════
+
+✓ 24 Hours of Lemons
+✓ NASA endurance races
+✓ SCCA enduro events
+✓ Karting endurance races
+✓ iRacing team events
+✓ Any multi-driver racing event
+✓ Practice session management
+✓ Driver development tracking
+
+
+QUICK TROUBLESHOOTING
+══════════════════════
+
+Issue: npm not found
+Fix: Install Node.js from nodejs.org
+
+Issue: Port 3000 in use
+Fix: Change PORT in server.js or stop conflicting app
+
+Issue: Can't connect in browser
+Fix: Ensure server is running, try http://127.0.0.1:3000
+
+Issue: Dependencies won't install
+Fix: Check internet, try npm install --force
+
+For detailed troubleshooting → INSTALL.md
+
+
+MULTI-DEVICE ACCESS
+═══════════════════
+
+To access from other devices on same network:
+
+1. Find your computer's IP address:
+   Windows: ipconfig
+   Mac/Linux: ifconfig or ip addr
+
+2. On other device's browser:
+   http://YOUR_IP:3000
+   
+   Example: http://192.168.1.100:3000
+
+
+UPDATES
+═══════
+
+Current Version: 1.0.0
+
+To update in future:
+  1. Download new version
+  2. Extract to new folder
+  3. Run npm install
+  
+Note: Race data stored in memory (resets on restart)
+
+
+USAGE SUMMARY
+═════════════
+
+1. Configure race settings (or use defaults)
+2. Click "Start Race" with first driver
+3. Monitor live timers and warnings
+4. Watch optimal recommendations (after first stint)
+5. Change drivers as needed (auto-records)
+6. Review stint history
+7. End race to save results
+
+
+FILE SIZES
+══════════
+
+ZIP Archive:     45 KB (compressed)
+TAR.GZ Archive:  37 KB (compressed)
+Extracted:       ~150 KB (without node_modules)
+With node_modules: ~15 MB (after npm install)
+
+
+SUPPORT
+═══════
+
+For help:
+  1. Read START_HERE.txt
+  2. Check INSTALL.md
+  3. Review QUICKSTART.md
+  4. See EXAMPLE_RACE.md for real usage
+  5. All features in FEATURES.md
+
+
+GETTING STARTED RIGHT NOW
+══════════════════════════
+
+Fastest path to running:
+
+1. Install Node.js (if not installed)
+   → https://nodejs.org
+
+2. Extract this archive
+
+3. Open terminal in extracted folder
+
+4. Run:
+   npm install
+   npm start
+
+5. Open browser:
+   http://localhost:3000
+
+6. Click "Start Race" with a driver name
+
+7. That's it! ✓
+
+
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║                    🏁 READY TO TRACK STINTS? 🏁                            ║
+║                                                                            ║
+║                  You're 3 commands away from racing:                       ║
+║                                                                            ║
+║                         npm install                                        ║
+║                         npm start                                          ║
+║                         Open http://localhost:3000                         ║
+║                                                                            ║
+║                       Happy Racing! 🏎️💨                                   ║
+║                                                                            ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+
+Package Version: 1.0.0
+Release Date: 2024
+Built with ❤️ for endurance racing teams

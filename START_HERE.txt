@@ -1,0 +1,219 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║              🏁 ENDURANCE RACE STINT TRACKER - START HERE 🏁               ║
+║                                                                            ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+Thank you for downloading the Endurance Race Stint Tracker!
+
+This is a complete web application for tracking driver stint times with an
+intelligent optimal stint calculator that learns from your performance.
+
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ 🚀 QUICK START (3 COMMANDS)                                               │
+└───────────────────────────────────────────────────────────────────────────┘
+
+  1. Make sure Node.js is installed (download from: https://nodejs.org)
+  
+  2. Open terminal/command prompt in this folder and run:
+     
+     npm install
+     npm start
+  
+  3. Open your browser to: http://localhost:3000
+
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ 📖 WHICH FILE SHOULD I READ FIRST?                                        │
+└───────────────────────────────────────────────────────────────────────────┘
+
+  Choose based on what you need:
+
+  ► Need help installing?
+    → Open: INSTALL.md
+    Complete installation guide for Windows, Mac, and Linux
+
+  ► Want to start using it right away?
+    → Open: QUICKSTART.md
+    5-minute guide to get tracking stints immediately
+
+  ► Want to understand all features?
+    → Open: FEATURES.md
+    Complete feature list and explanations
+
+  ► Curious how the optimal calculator works?
+    → Open: OPTIMAL_STINT_GUIDE.md
+    Deep dive into the intelligent stint calculator
+
+  ► Want to see a real example?
+    → Open: EXAMPLE_RACE.md
+    Complete 11-stint race walkthrough with data
+
+  ► Need the full manual?
+    → Open: README.md
+    Comprehensive user guide and technical details
+
+  ► Lost in documentation?
+    → Open: INDEX.md
+    Navigation guide for all documentation
+
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ ✨ WHAT DOES THIS APP DO?                                                 │
+└───────────────────────────────────────────────────────────────────────────┘
+
+  Core Features:
+  ✓ Track driver stint times in real-time
+  ✓ Color-coded warnings (green → orange → red)
+  ✓ Automatic stint recording on driver changes
+  ✓ Complete race history tracking
+  ✓ Configurable race settings
+
+  🆕 Optimal Stint Calculator:
+  ✓ Learns from your completed stints
+  ✓ Calculates ideal stint time (60% performance + 40% race needs)
+  ✓ Provides strategic recommendations
+  ✓ Shows confidence level and analytics
+  ✓ Adapts as race progresses
+
+  Example Output After 5 Stints:
+  ┌────────────────────────────────────────────────────┐
+  │ Recommended Stint Time: 32:15                      │
+  │ "Maintain current pace - on track"                 │
+  │ Confidence: 85%                                    │
+  │                                                     │
+  │ Performance Analytics:                             │
+  │ ├─ Average Stint: 31:30                           │
+  │ ├─ Consistency Score: 88%                         │
+  │ ├─ Stints at Target: 4 / 5                        │
+  │ └─ Stints Remaining: 6                            │
+  └────────────────────────────────────────────────────┘
+
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ 🎯 PERFECT FOR                                                            │
+└───────────────────────────────────────────────────────────────────────────┘
+
+  • 24 Hours of Lemons
+  • NASA endurance races
+  • SCCA enduro events
+  • Karting endurance races
+  • iRacing team events
+  • Any multi-driver racing event
+
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ 📦 PACKAGE CONTENTS                                                       │
+└───────────────────────────────────────────────────────────────────────────┘
+
+  Application Files:
+  • server.js               - Backend Node.js server
+  • package.json           - Project dependencies
+  • public/index.html      - Frontend web interface
+
+  Documentation (8 files):
+  • DOWNLOAD_README.txt    - This welcome file
+  • INSTALL.md             - Installation instructions
+  • QUICKSTART.md          - Quick start guide
+  • README.md              - Complete manual
+  • FEATURES.md            - All features explained
+  • INDEX.md               - Documentation navigation
+  • OPTIMAL_STINT_GUIDE.md - Calculator deep dive
+  • OPTIMAL_ALGORITHM.txt  - Algorithm flowchart
+  • EXAMPLE_RACE.md        - Race walkthrough
+
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ 🔧 SYSTEM REQUIREMENTS                                                    │
+└───────────────────────────────────────────────────────────────────────────┘
+
+  • Node.js v14+ (download: https://nodejs.org)
+  • Modern web browser (Chrome, Firefox, Safari, Edge)
+  • 50 MB RAM
+  • 100 MB disk space (with dependencies)
+  • Windows 10+, macOS 10.13+, or Linux
+
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ 🆘 TROUBLESHOOTING                                                        │
+└───────────────────────────────────────────────────────────────────────────┘
+
+  Problem: "npm is not recognized" or "command not found"
+  Solution: Install Node.js from https://nodejs.org
+           Restart your terminal after installing
+
+  Problem: Port 3000 already in use
+  Solution: Stop other applications using that port
+           Or edit server.js and change the PORT number
+
+  Problem: Can't connect in browser
+  Solution: Make sure server is running (check terminal)
+           Try http://127.0.0.1:3000 instead
+           Check firewall settings
+
+  For detailed troubleshooting → See INSTALL.md
+
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ 🌐 ACCESS FROM OTHER DEVICES                                              │
+└───────────────────────────────────────────────────────────────────────────┘
+
+  Want to view on tablet/phone on same WiFi?
+
+  1. Find your computer's IP address
+  2. On other device, go to: http://YOUR_IP:3000
+  
+  Example: http://192.168.1.100:3000
+
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ ⚡ SUPER QUICK START                                                      │
+└───────────────────────────────────────────────────────────────────────────┘
+
+  If you just want to try it NOW:
+
+  1. Make sure Node.js is installed
+  2. Open terminal in this folder
+  3. Run these commands:
+
+     npm install
+     npm start
+
+  4. Open: http://localhost:3000
+  5. Click "Start Race" with a driver name
+  6. Watch the timers count!
+
+  The optimal calculator appears after your first stint is completed.
+
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ 📞 SUPPORT                                                                │
+└───────────────────────────────────────────────────────────────────────────┘
+
+  For questions:
+  1. Check the documentation (especially INSTALL.md and README.md)
+  2. Review EXAMPLE_RACE.md to see it in action
+  3. All features are documented in FEATURES.md
+
+
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║                       🏁 READY TO RACE? 🏁                                 ║
+║                                                                            ║
+║                Three commands stand between you                            ║
+║                and professional stint tracking:                            ║
+║                                                                            ║
+║                    1. npm install                                          ║
+║                    2. npm start                                            ║
+║                    3. Open http://localhost:3000                           ║
+║                                                                            ║
+║                        That's it! 🎉                                       ║
+║                                                                            ║
+║                     Happy Racing! 🏎️💨                                     ║
+║                                                                            ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+
+Version 1.0.0 | 2024
+Built with ❤️ for endurance racing teams
