@@ -261,8 +261,22 @@ app.get('/api/race-state/:carNumber', (req, res) => {
     raceData.plannedChanges
   );
 
+  // Adjust required time to exclude current stint (Option 2)
+  // This shows what FUTURE stints need to be, not including the current one
+  let adjustedRequiredTime = plannedCalc.requiredStintTime;
+  if (raceData.isRaceActive && raceData.stintStartTime && plannedCalc.stintsRemaining > 1) {
+    // Time remaining AFTER this stint completes
+    const futureRaceTime = totalRaceTimeRemaining - timeInCar;
+    // Stints remaining AFTER this stint (exclude current)
+    const futureStints = plannedCalc.stintsRemaining - 1;
+
+    if (futureStints > 0 && futureRaceTime > 0) {
+      adjustedRequiredTime = futureRaceTime / futureStints;
+    }
+  }
+
   // Now calculate time remaining using LIVE calculated target
-  const liveTargetTime = plannedCalc.requiredStintTime > 0 ? plannedCalc.requiredStintTime : raceData.targetStintTime;
+  const liveTargetTime = adjustedRequiredTime > 0 ? adjustedRequiredTime : raceData.targetStintTime;
   timeRemaining = liveTargetTime - timeInCar;
 
   // Check if calculated target is reached
@@ -282,14 +296,14 @@ app.get('/api/race-state/:carNumber', (req, res) => {
     totalRaceTimeRemaining,
     totalRaceTimeElapsed,
     optimal: optimalStintData,
-    stintsRemaining: plannedCalc.stintsRemaining, // Based on planned changes
-    requiredStintTime: plannedCalc.requiredStintTime, // Based on planned changes - UPDATES LIVE
+    stintsRemaining: plannedCalc.stintsRemaining, // Based on planned changes (includes current)
+    requiredStintTime: adjustedRequiredTime, // For FUTURE stints (excludes current) - UPDATES LIVE
     changesRemaining: plannedCalc.changesRemaining, // New field
     minStintsNeeded: minStintCalc.stintsNeeded, // Safety minimum
     targetStintReached: raceData.targetStintReached,
     simulationMode: raceData.simulationMode,
     timeMultiplier,
-    currentStintTargetCalc: plannedCalc.requiredStintTime // Live calculated target - UPDATES LIVE
+    currentStintTargetCalc: adjustedRequiredTime // Live calculated target for future stints - UPDATES LIVE
   });
 });
 
