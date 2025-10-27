@@ -283,6 +283,11 @@
                             <div className="text-gray-400">TGT: <span className="text-yellow-400 orbitron">{formatTimeShort(raceState.targetStintTime)}</span></div>
                             <div className="text-gray-400">MAX: <span className="text-red-500 orbitron">{formatTimeShort(raceState.maxStintTime)}</span></div>
                         </div>
+                        {raceState.currentStintTargetCalc > 0 && (
+                            <div className="mt-1 text-xs">
+                                <div className="text-gray-400">Target calc: <span className="text-cyan-400 orbitron">{formatTimeShort(raceState.currentStintTargetCalc)}</span></div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Time Grid */}
