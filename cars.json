@@ -1,0 +1,24 @@
+{
+  "cars": [
+    {
+      "number": "23",
+      "name": "Blue Team",
+      "drivers": [
+        "John Doe",
+        "Jane Smith",
+        "Mike Ross",
+        "Sarah Connor"
+      ]
+    },
+    {
+      "number": "47",
+      "name": "Red Team",
+      "drivers": [
+        "Bob Johnson",
+        "Alice Williams",
+        "Tom Brady",
+        "Lisa Anderson"
+      ]
+    }
+  ]
+}

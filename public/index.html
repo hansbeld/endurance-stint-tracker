@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Car Stint Tracker</title>
+    <title>Two-Car Stint Tracker</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -15,21 +15,34 @@
             font-family: 'Rajdhani', sans-serif;
             background: #0a0a0a;
             color: #fff;
-            font-size: 14px;
+            font-size: 13px;
         }
         .orbitron { font-family: 'Orbitron', monospace; }
-        .timer-lg { font-size: 2.5rem; line-height: 1; font-weight: 800; }
-        .timer-md { font-size: 1.5rem; line-height: 1; font-weight: 700; }
-        .timer-sm { font-size: 1.25rem; line-height: 1; font-weight: 600; }
+        .timer-xl { font-size: 2rem; line-height: 1; font-weight: 800; }
+        .timer-lg { font-size: 1.5rem; line-height: 1; font-weight: 700; }
+        .timer-md { font-size: 1.25rem; line-height: 1; font-weight: 600; }
+        .timer-sm { font-size: 1rem; line-height: 1; font-weight: 600; }
         .pulse { animation: pulse 1s infinite; }
         .pulse-fast { animation: pulse 0.5s infinite; }
+        .blink-red { animation: blink-red 0.5s infinite; }
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
+        @keyframes blink-red {
+            0%, 100% { 
+                background: linear-gradient(135deg, rgba(220, 38, 38, 0.3), rgba(185, 28, 28, 0.3));
+                border-color: rgba(239, 68, 68, 0.8);
+            }
+            50% { 
+                background: linear-gradient(135deg, rgba(220, 38, 38, 0.6), rgba(185, 28, 28, 0.6));
+                border-color: rgba(239, 68, 68, 1);
+            }
+        }
         .panel {
             background: linear-gradient(135deg, rgba(30,30,30,0.95), rgba(20,20,20,0.95));
             border: 1px solid rgba(255,255,255,0.1);
+            position: relative;
         }
         .panel::before {
             content: '';
@@ -40,46 +53,30 @@
             height: 2px;
             background: linear-gradient(90deg, transparent, #e10600, transparent);
         }
-        .btn-f1 {
+        .btn {
             background: linear-gradient(135deg, #e10600, #ff3838);
-            padding: 8px 16px;
+            padding: 6px 12px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             transition: all 0.3s;
+            font-size: 11px;
         }
-        .btn-f1:hover:not(:disabled) {
+        .btn:hover:not(:disabled) {
             transform: translateY(-1px);
-            box-shadow: 0 8px 20px rgba(225,6,0,0.4);
+            box-shadow: 0 6px 16px rgba(225,6,0,0.4);
         }
-        .btn-f1:disabled { opacity: 0.3; }
+        .btn:disabled { opacity: 0.3; }
         .btn-sec {
             background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
             border: 1px solid rgba(255,255,255,0.2);
         }
         .stint-card {
             background: linear-gradient(135deg, rgba(40,40,40,0.8), rgba(30,30,30,0.8));
-            border-left: 3px solid #e10600;
-            transition: all 0.2s;
-        }
-        .stint-card:hover {
-            background: linear-gradient(135deg, rgba(50,50,50,0.9), rgba(40,40,40,0.9));
-            transform: translateX(2px);
+            border-left: 2px solid #e10600;
         }
         .stint-card.target-met { border-left-color: #22c55e; }
         .stint-card.over-max { border-left-color: #ef4444; }
-        .car-tab {
-            background: rgba(30,30,30,0.5);
-            border: 1px solid rgba(255,255,255,0.1);
-            transition: all 0.2s;
-        }
-        .car-tab.active {
-            background: linear-gradient(135deg, #e10600, #ff3838);
-            border-color: #e10600;
-        }
-        .car-tab:hover:not(.active) {
-            background: rgba(40,40,40,0.8);
-        }
     </style>
 </head>
 <body>
@@ -88,36 +85,18 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        function App() {
-            const [sessions, setSessions] = useState([]);
-            const [activeCar, setActiveCar] = useState(null);
+        function CarPanel({ carNumber, carName, drivers }) {
             const [raceState, setRaceState] = useState(null);
             const [driverName, setDriverName] = useState('');
-            const [showAddCar, setShowAddCar] = useState(false);
-            const [newCarNumber, setNewCarNumber] = useState('');
-            const [showDrivers, setShowDrivers] = useState(false);
-            const [driverList, setDriverList] = useState([]);
-            const [newDriver, setNewDriver] = useState('');
-            const [settingsOpen, setSettingsOpen] = useState(false);
-            const [settings, setSettings] = useState({
-                targetStintTime: 30,
-                maxStintTime: 45,
-                totalRaceTime: 6,
-                maxDriverChanges: 12,
-                simulationMode: false
-            });
-            const audioRef = useRef(null);
             const [lastTargetReached, setLastTargetReached] = useState(false);
+            const audioRef = useRef(null);
 
             useEffect(() => {
                 audioRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE');
-                loadSessions();
-                loadSettings();
-                const interval = setInterval(() => {
-                    if (activeCar) updateDisplay();
-                }, 1000);
+                updateDisplay();
+                const interval = setInterval(updateDisplay, 1000);
                 return () => clearInterval(interval);
-            }, [activeCar]);
+            }, [carNumber]);
 
             useEffect(() => {
                 if (raceState && raceState.targetStintReached && !lastTargetReached) {
@@ -128,63 +107,19 @@
                 }
             }, [raceState?.targetStintReached]);
 
-            const loadSessions = async () => {
-                const res = await fetch('/api/sessions');
-                const data = await res.json();
-                setSessions(data);
-                if (data.length > 0 && !activeCar) setActiveCar(data[0].carNumber);
-            };
-
-            const loadSettings = async () => {
-                const res = await fetch('/api/settings');
-                setSettings(await res.json());
-            };
-
             const updateDisplay = async () => {
-                if (!activeCar) return;
-                const res = await fetch(`/api/race-state/${activeCar}`);
-                const data = await res.json();
-                setRaceState(data);
-                loadSessions();
-            };
-
-            const loadDriverList = async () => {
-                if (!activeCar) return;
-                const res = await fetch(`/api/session/${activeCar}/drivers`);
-                const data = await res.json();
-                setDriverList(data.driverList || []);
-            };
-
-            const saveDriverList = async () => {
-                await fetch(`/api/session/${activeCar}/drivers`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ drivers: driverList })
-                });
-            };
-
-            const addCar = async () => {
-                if (!newCarNumber.trim()) return;
-                await fetch('/api/session/create', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ carNumber: newCarNumber })
-                });
-                setNewCarNumber('');
-                setShowAddCar(false);
-                loadSessions();
-            };
-
-            const deleteCar = async (carNumber) => {
-                if (!confirm(`Delete car #${carNumber}?`)) return;
-                await fetch(`/api/session/${carNumber}`, { method: 'DELETE' });
-                if (activeCar === carNumber) setActiveCar(null);
-                loadSessions();
+                try {
+                    const res = await fetch(`/api/race-state/${carNumber}`);
+                    const data = await res.json();
+                    setRaceState(data);
+                } catch (error) {
+                    console.error('Error:', error);
+                }
             };
 
             const startRace = async () => {
-                if (!driverName.trim() || !activeCar) return;
-                await fetch(`/api/start-race/${activeCar}`, {
+                if (!driverName.trim()) return;
+                await fetch(`/api/start-race/${carNumber}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ driverName })
@@ -194,8 +129,8 @@
             };
 
             const changeDriver = async () => {
-                if (!driverName.trim() || !activeCar) return;
-                await fetch(`/api/change-driver/${activeCar}`, {
+                if (!driverName.trim()) return;
+                await fetch(`/api/change-driver/${carNumber}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ driverName })
@@ -204,29 +139,69 @@
                 updateDisplay();
             };
 
+            // Get next driver in rotation
+            const getNextDriver = () => {
+                if (!drivers || drivers.length === 0) return null;
+                if (!raceState.currentDriver) return drivers[0];
+                
+                const currentIndex = drivers.indexOf(raceState.currentDriver);
+                if (currentIndex === -1) return drivers[0];
+                
+                const nextIndex = (currentIndex + 1) % drivers.length;
+                return drivers[nextIndex];
+            };
+
+            // Auto-select next driver
+            const autoSelectNextDriver = () => {
+                const nextDriver = getNextDriver();
+                if (nextDriver) {
+                    setDriverName(nextDriver);
+                }
+            };
+
             const pauseStint = async () => {
-                await fetch(`/api/pause-stint/${activeCar}`, { method: 'POST' });
+                await fetch(`/api/pause-stint/${carNumber}`, { method: 'POST' });
                 updateDisplay();
             };
 
             const resumeStint = async () => {
-                await fetch(`/api/resume-stint/${activeCar}`, { method: 'POST' });
+                await fetch(`/api/resume-stint/${carNumber}`, { method: 'POST' });
                 updateDisplay();
             };
 
             const endRace = async () => {
                 if (!confirm('End race?')) return;
-                await fetch(`/api/end-race/${activeCar}`, { method: 'POST' });
+                await fetch(`/api/end-race/${carNumber}`, { method: 'POST' });
                 updateDisplay();
             };
 
-            const updateSettings = async () => {
-                await fetch('/api/settings', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(settings)
+            // Calculate driver statistics
+            const getDriverStats = () => {
+                if (!raceState || !raceState.stintHistory || raceState.stintHistory.length === 0) {
+                    return {};
+                }
+
+                const stats = {};
+                
+                raceState.stintHistory.forEach(stint => {
+                    if (!stats[stint.driver]) {
+                        stats[stint.driver] = {
+                            totalTime: 0,
+                            stintCount: 0,
+                            stints: []
+                        };
+                    }
+                    stats[stint.driver].totalTime += stint.duration;
+                    stats[stint.driver].stintCount += 1;
+                    stats[stint.driver].stints.push(stint);
                 });
-                setSettingsOpen(false);
+
+                // Calculate averages
+                Object.keys(stats).forEach(driver => {
+                    stats[driver].average = stats[driver].totalTime / stats[driver].stintCount;
+                });
+
+                return stats;
             };
 
             const formatTime = (ms) => {
@@ -251,30 +226,296 @@
                 return 'text-green-500';
             };
 
-            if (!raceState && activeCar) {
-                updateDisplay();
+            if (!raceState) {
+                return <div className="flex items-center justify-center h-full">
+                    <div className="orbitron text-red-500 text-lg animate-pulse">LOADING...</div>
+                </div>;
+            }
+
+            return (
+                <div className="flex flex-col h-full">
+                    {/* Header */}
+                    <div className="panel p-2 rounded-none mb-2">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <div className="orbitron text-xl font-black text-red-500">#{carNumber}</div>
+                                <div className="text-gray-400 text-xs">{carName}</div>
+                            </div>
+                            <div className="text-right">
+                                <div className={`orbitron text-lg font-bold ${
+                                    !raceState.isRaceActive ? 'text-gray-500' : 
+                                    raceState.isPaused ? 'text-yellow-400' : 'text-green-500'
+                                }`}>
+                                    {!raceState.isRaceActive ? 'READY' : raceState.isPaused ? 'PAUSE' : 'LIVE'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Driver */}
+                    <div className="panel p-2 rounded-none mb-2">
+                        <div className="text-gray-400 text-xs">DRIVER</div>
+                        <div className="orbitron text-2xl font-black text-white truncate">
+                            {raceState.currentDriver || '---'}
+                        </div>
+                    </div>
+
+                    {/* Main Timer */}
+                    <div className={`panel p-3 rounded-none mb-2 ${
+                        raceState.targetStintReached ? 'border-2 border-green-500' : ''
+                    } ${
+                        raceState.timeRemaining > 0 && raceState.timeRemaining <= 5 * 60 * 1000 ? 'blink-red border-2' : ''
+                    }`}>
+                        <div className="text-gray-400 text-xs mb-1">TIME IN CAR</div>
+                        {raceState.targetStintReached && (
+                            <div className="text-green-500 font-bold text-xs mb-1 pulse">✓ TARGET</div>
+                        )}
+                        {raceState.timeRemaining > 0 && raceState.timeRemaining <= 5 * 60 * 1000 && (
+                            <div className="text-red-500 font-bold text-xs mb-1 pulse-fast">⚠ 5 MIN TO MAX!</div>
+                        )}
+                        <div className={`orbitron timer-xl ${getTimerColor(raceState.timeInCar, raceState.targetStintTime, raceState.maxStintTime)} ${
+                            raceState.timeInCar >= raceState.maxStintTime ? 'pulse-fast' :
+                            raceState.timeInCar >= raceState.targetStintTime ? 'pulse' : ''
+                        }`}>
+                            {formatTime(raceState.timeInCar)}
+                        </div>
+                        <div className="flex gap-3 mt-1 text-xs">
+                            <div className="text-gray-400">TGT: <span className="text-yellow-400 orbitron">{formatTimeShort(raceState.targetStintTime)}</span></div>
+                            <div className="text-gray-400">MAX: <span className="text-red-500 orbitron">{formatTimeShort(raceState.maxStintTime)}</span></div>
+                        </div>
+                    </div>
+
+                    {/* Time Grid */}
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                        <div className="panel p-2 rounded-none text-center">
+                            <div className="text-gray-400 text-xs">STINT LEFT</div>
+                            <div className={`orbitron timer-md ${raceState.timeRemaining <= 0 ? 'text-red-500' : 'text-green-500'}`}>
+                                {formatTimeShort(raceState.timeRemaining)}
+                            </div>
+                        </div>
+                        <div className="panel p-2 rounded-none text-center">
+                            <div className="text-gray-400 text-xs">RACE LEFT</div>
+                            <div className="orbitron timer-md text-white">{formatTime(raceState.totalRaceTimeRemaining)}</div>
+                        </div>
+                    </div>
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-3 gap-2 mb-2">
+                        <div className="panel p-2 rounded-none text-center">
+                            <div className="text-gray-400 text-xs">CHANGES</div>
+                            <div className="orbitron timer-sm text-white">
+                                {raceState.driverChanges}/{raceState.plannedChanges || 11}
+                            </div>
+                        </div>
+                        <div className="panel p-2 rounded-none text-center">
+                            <div className="text-gray-400 text-xs">STINTS LEFT</div>
+                            <div className="orbitron timer-sm text-cyan-400">{raceState.stintsRemaining || 0}</div>
+                        </div>
+                        <div className="panel p-2 rounded-none text-center">
+                            <div className="text-gray-400 text-xs">REQUIRED</div>
+                            <div className="orbitron timer-sm text-cyan-400">
+                                {raceState.isRaceActive ? formatTimeShort(raceState.requiredStintTime) : '--:--'}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ENHANCED Optimal Stint Display - Prominent */}
+                    {raceState.optimal && raceState.optimal.confidence > 0 && (
+                        <div className="panel p-3 rounded-none mb-2 border-l-4 border-cyan-500 bg-gradient-to-r from-cyan-900/20 to-transparent">
+                            <div className="flex justify-between items-center mb-2">
+                                <div>
+                                    <div className="text-cyan-400 text-xs font-bold">🎯 OPTIMAL NEXT STINT</div>
+                                    <div className="text-gray-400 text-xs">TIME LEFT ÷ STINTS LEFT</div>
+                                    <div className="orbitron timer-lg text-cyan-400 font-black">
+                                        {formatTime(raceState.optimal.optimalTime)}
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-gray-400 text-xs">CONFIDENCE</div>
+                                    <div className="orbitron text-2xl font-bold text-cyan-400">{raceState.optimal.confidence}%</div>
+                                </div>
+                            </div>
+                            <div className="text-white text-sm font-bold mb-1">{raceState.optimal.recommendation}</div>
+                            <div className="grid grid-cols-5 gap-2 text-xs">
+                                <div><span className="text-gray-400">AVG:</span> <span className="orbitron text-white">{formatTimeShort(raceState.optimal.analysis.averageStintTime)}</span></div>
+                                <div><span className="text-gray-400">CALC:</span> <span className="orbitron text-cyan-400">{formatTimeShort(raceState.optimal.analysis.calculatedTime)}</span></div>
+                                <div><span className="text-gray-400">DIFF:</span> <span className={`orbitron ${raceState.optimal.analysis.paceDifferencePercent < 0 ? 'text-red-400' : 'text-green-400'}`}>{raceState.optimal.analysis.paceDifferencePercent > 0 ? '+' : ''}{raceState.optimal.analysis.paceDifferencePercent}%</span></div>
+                                <div><span className="text-gray-400">ON TGT:</span> <span className="orbitron text-white">{raceState.optimal.analysis.stintsAtTarget}/{raceState.optimal.analysis.totalStintsCompleted}</span></div>
+                                <div><span className="text-gray-400">OVER:</span> <span className="orbitron text-red-400">{raceState.optimal.analysis.stintsOverMax}</span></div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Upcoming Driver Alert */}
+                    {raceState.isRaceActive && getNextDriver() && (
+                        <div className="panel p-2 rounded-none mb-2 border-l-2 border-yellow-500 bg-gradient-to-r from-yellow-900/20 to-transparent">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <div className="text-yellow-400 text-xs font-bold">👤 NEXT DRIVER</div>
+                                    <div className="text-white text-lg font-bold">{getNextDriver()}</div>
+                                </div>
+                                <button 
+                                    onClick={autoSelectNextDriver}
+                                    className="btn-sec rounded-none text-xs px-3 py-1 hover:bg-yellow-600"
+                                >
+                                    AUTO-SELECT
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Controls */}
+                    <div className="panel p-2 rounded-none mb-2">
+                        <input
+                            type="text"
+                            value={driverName}
+                            onChange={(e) => setDriverName(e.target.value)}
+                            onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                    if (!raceState.isRaceActive) startRace();
+                                    else changeDriver();
+                                }
+                            }}
+                            placeholder="DRIVER"
+                            className="w-full px-2 py-1 rounded-none bg-black border border-gray-700 text-white text-sm mb-2"
+                            list={`drivers-${carNumber}`}
+                        />
+                        <datalist id={`drivers-${carNumber}`}>
+                            {drivers?.map((d, i) => <option key={i} value={d} />)}
+                        </datalist>
+                        <div className="grid grid-cols-4 gap-1 mb-1">
+                            <button onClick={startRace} disabled={raceState.isRaceActive} className="btn rounded-none py-1 col-span-2">START</button>
+                            <button onClick={changeDriver} disabled={!raceState.isRaceActive} className="btn rounded-none py-1 col-span-2">CHANGE</button>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1">
+                            <button onClick={pauseStint} disabled={!raceState.isRaceActive || !raceState.stintStartTime || raceState.isPaused} className="btn-sec rounded-none py-1">PAUSE</button>
+                            <button onClick={resumeStint} disabled={!raceState.isRaceActive || !raceState.isPaused} className="btn-sec rounded-none py-1">RESUME</button>
+                            <button onClick={endRace} disabled={!raceState.isRaceActive} className="btn rounded-none py-1 bg-red-900">END</button>
+                        </div>
+                    </div>
+
+                    {/* History */}
+                    <div className="panel p-2 rounded-none flex-1 overflow-hidden">
+                        <div className="text-gray-400 text-xs mb-1">STINT HISTORY</div>
+                        
+                        {/* Driver Stats Summary */}
+                        {raceState.stintHistory.length > 0 && (
+                            <div className="mb-2 border border-gray-700 rounded-none">
+                                <div className="bg-gray-900 px-2 py-1">
+                                    <div className="text-cyan-400 text-xs font-bold">DRIVER AVERAGES</div>
+                                </div>
+                                <div className="max-h-[120px] overflow-y-auto">
+                                    {Object.entries(getDriverStats()).map(([driver, stats]) => (
+                                        <div key={driver} className="flex justify-between items-center px-2 py-1 border-b border-gray-800 hover:bg-gray-900">
+                                            <div className="text-white text-xs font-bold truncate flex-1">{driver}</div>
+                                            <div className="flex gap-3 text-xs">
+                                                <div>
+                                                    <span className="text-gray-400">AVG:</span>{' '}
+                                                    <span className="orbitron text-cyan-400 font-bold">{formatTimeShort(stats.average)}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-gray-400">STINTS:</span>{' '}
+                                                    <span className="orbitron text-white">{stats.stintCount}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Stint List */}
+                        <div className="text-gray-400 text-xs mb-1">ALL STINTS</div>
+                        <div className="space-y-1 max-h-[200px] overflow-y-auto">
+                            {raceState.stintHistory.length === 0 ? (
+                                <div className="text-center text-gray-500 py-4 text-xs">NO DATA</div>
+                            ) : (
+                                raceState.stintHistory.slice().reverse().map((stint, index) => {
+                                    const num = raceState.stintHistory.length - index;
+                                    return (
+                                        <div key={index} className={`stint-card p-1 rounded-none ${stint.targetMet && !stint.overMax ? 'target-met' : stint.overMax ? 'over-max' : ''}`}>
+                                            <div className="flex justify-between items-start text-xs">
+                                                <div>
+                                                    <div className="orbitron text-gray-400">#{num}</div>
+                                                    <div className="text-white font-bold truncate">{stint.driver}</div>
+                                                </div>
+                                                <div className="orbitron text-sm font-bold text-white">{formatTimeShort(stint.duration)}</div>
+                                            </div>
+                                            <div className="mt-1">
+                                                {stint.overMax ? (
+                                                    <span className="text-xs px-1 bg-red-600 text-white font-bold">OVER</span>
+                                                ) : stint.targetMet ? (
+                                                    <span className="text-xs px-1 bg-green-600 text-white font-bold">OK</span>
+                                                ) : (
+                                                    <span className="text-xs px-1 bg-yellow-600 text-white font-bold">SHORT</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function App() {
+            const [carsConfig, setCarsConfig] = useState(null);
+            const [settingsOpen, setSettingsOpen] = useState(false);
+            const [settings, setSettings] = useState({
+                targetStintTime: 30,
+                maxStintTime: 45,
+                totalRaceTime: 6,
+                maxDriverChanges: 12,
+                plannedChanges: 11,
+                simulationMode: false
+            });
+
+            useEffect(() => {
+                loadConfig();
+                loadSettings();
+            }, []);
+
+            const loadConfig = async () => {
+                const res = await fetch('/api/cars');
+                const data = await res.json();
+                setCarsConfig(data);
+            };
+
+            const loadSettings = async () => {
+                const res = await fetch('/api/settings');
+                setSettings(await res.json());
+            };
+
+            const updateSettings = async () => {
+                await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+                setSettingsOpen(false);
+            };
+
+            if (!carsConfig) {
                 return <div className="flex items-center justify-center min-h-screen bg-black">
                     <div className="orbitron text-red-500 text-2xl animate-pulse">LOADING...</div>
                 </div>;
             }
 
             return (
-                <div className="min-h-screen bg-black p-3">
+                <div className="min-h-screen bg-black p-2">
                     {/* Header */}
-                    <div className="flex justify-between items-center mb-3">
-                        <div>
-                            <h1 className="orbitron text-2xl font-black text-red-500 tracking-wider">MULTI-CAR TRACKER</h1>
-                        </div>
-                        <button onClick={() => setSettingsOpen(!settingsOpen)} className="btn-f1 rounded-none text-xs">
-                            ⚙ SETTINGS
-                        </button>
+                    <div className="flex justify-between items-center mb-2">
+                        <h1 className="orbitron text-xl font-black text-red-500">TWO-CAR TRACKER</h1>
+                        <button onClick={() => setSettingsOpen(!settingsOpen)} className="btn rounded-none">SETTINGS</button>
                     </div>
 
-                    {/* Settings Panel */}
+                    {/* Settings */}
                     {settingsOpen && (
-                        <div className="panel rounded-none p-4 mb-3 relative">
-                            <h3 className="orbitron text-lg font-bold text-red-500 mb-3">SETTINGS</h3>
-                            <div className="grid grid-cols-5 gap-3 text-xs">
+                        <div className="panel rounded-none p-3 mb-2">
+                            <h3 className="orbitron text-lg font-bold text-red-500 mb-2">SETTINGS</h3>
+                            <div className="grid grid-cols-6 gap-2 text-xs">
                                 <div>
                                     <label className="block text-gray-400 mb-1">TARGET (min)</label>
                                     <input type="number" value={settings.targetStintTime}
@@ -297,252 +538,47 @@
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-gray-400 mb-1">PLANNED</label>
+                                    <label className="block text-gray-400 mb-1">PLANNED CHG</label>
+                                    <input type="number" value={settings.plannedChanges}
+                                        onChange={(e) => setSettings({...settings, plannedChanges: parseInt(e.target.value)})}
+                                        className="w-full px-2 py-1 bg-black border border-cyan-700 text-cyan-400 orbitron font-bold"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-gray-400 mb-1">REQ MIN</label>
                                     <input type="number" value={settings.maxDriverChanges}
                                         onChange={(e) => setSettings({...settings, maxDriverChanges: parseInt(e.target.value)})}
                                         className="w-full px-2 py-1 bg-black border border-gray-700 text-white orbitron"
                                     />
                                 </div>
                                 <div>
-                                    <label className="flex items-center gap-1 cursor-pointer mt-5">
+                                    <label className="flex items-center gap-1 cursor-pointer mt-4">
                                         <input type="checkbox" checked={settings.simulationMode}
                                             onChange={(e) => setSettings({...settings, simulationMode: e.target.checked})}
                                             className="w-4 h-4"
                                         />
-                                        <span className="text-white font-bold">SIM MODE</span>
+                                        <span className="text-white font-bold">SIM</span>
                                     </label>
                                 </div>
                             </div>
-                            <div className="flex gap-2 mt-3">
-                                <button onClick={updateSettings} className="btn-f1 rounded-none text-xs flex-1">SAVE</button>
-                                <button onClick={() => setSettingsOpen(false)} className="btn-sec rounded-none text-xs flex-1">CANCEL</button>
+                            <div className="flex gap-2 mt-2">
+                                <button onClick={updateSettings} className="btn rounded-none flex-1">SAVE</button>
+                                <button onClick={() => setSettingsOpen(false)} className="btn-sec rounded-none flex-1">CANCEL</button>
                             </div>
                         </div>
                     )}
 
-                    {/* Car Tabs */}
-                    <div className="flex gap-2 mb-3 flex-wrap items-center">
-                        {sessions.map(s => (
-                            <div key={s.carNumber} className="flex items-center gap-1">
-                                <button
-                                    onClick={() => setActiveCar(s.carNumber)}
-                                    className={`car-tab rounded-none px-4 py-2 orbitron font-bold text-sm ${activeCar === s.carNumber ? 'active' : ''}`}
-                                >
-                                    #{s.carNumber}
-                                    {s.isActive && <span className="ml-1 text-green-400">●</span>}
-                                </button>
-                                <button onClick={() => deleteCar(s.carNumber)} className="text-red-500 hover:text-red-400 text-xs px-1">✕</button>
-                            </div>
+                    {/* Two Cars Side by Side */}
+                    <div className="grid grid-cols-2 gap-2" style={{height: 'calc(100vh - 100px)'}}>
+                        {carsConfig.cars.map(car => (
+                            <CarPanel
+                                key={car.number}
+                                carNumber={car.number}
+                                carName={car.name}
+                                drivers={car.drivers}
+                            />
                         ))}
-                        <button onClick={() => setShowAddCar(!showAddCar)} className="btn-f1 rounded-none text-xs px-3 py-2">
-                            + ADD CAR
-                        </button>
-                        {showAddCar && (
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={newCarNumber}
-                                    onChange={(e) => setNewCarNumber(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && addCar()}
-                                    placeholder="CAR #"
-                                    className="px-2 py-1 bg-black border border-gray-700 text-white orbitron text-sm w-20"
-                                />
-                                <button onClick={addCar} className="btn-f1 rounded-none text-xs px-2">OK</button>
-                            </div>
-                        )}
                     </div>
-
-                    {!activeCar ? (
-                        <div className="text-center text-gray-500 py-20 orbitron">SELECT OR ADD A CAR</div>
-                    ) : raceState && (
-                        <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
-                            {/* Left Column */}
-                            <div className="xl:col-span-2 space-y-3">
-                                {/* Driver & Status */}
-                                <div className="panel p-3 rounded-none relative flex justify-between">
-                                    <div>
-                                        <div className="text-gray-400 text-xs">CAR #{raceState.carNumber} • DRIVER</div>
-                                        <div className="orbitron text-3xl font-black text-white">
-                                            {raceState.currentDriver || '---'}
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="text-gray-400 text-xs">STATUS</div>
-                                        <div className={`orbitron text-xl font-bold ${
-                                            !raceState.isRaceActive ? 'text-gray-500' : 
-                                            raceState.isPaused ? 'text-yellow-400' : 'text-green-500'
-                                        }`}>
-                                            {!raceState.isRaceActive ? 'READY' : raceState.isPaused ? 'PAUSED' : 'LIVE'}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Main Timer */}
-                                <div className={`panel p-4 rounded-none relative ${raceState.targetStintReached ? 'border-2 border-green-500' : ''}`}>
-                                    <div className="text-gray-400 text-xs mb-1">TIME IN CAR</div>
-                                    {raceState.targetStintReached && (
-                                        <div className="text-green-500 font-bold text-sm mb-1 pulse">✓ TARGET REACHED</div>
-                                    )}
-                                    <div className={`orbitron timer-lg ${getTimerColor(raceState.timeInCar, raceState.targetStintTime, raceState.maxStintTime)} ${
-                                        raceState.timeInCar >= raceState.maxStintTime ? 'pulse-fast' :
-                                        raceState.timeInCar >= raceState.targetStintTime ? 'pulse' : ''
-                                    }`}>
-                                        {formatTime(raceState.timeInCar)}
-                                    </div>
-                                    <div className="flex gap-4 mt-1 text-gray-400 text-xs">
-                                        <div>TARGET: <span className="text-yellow-400 orbitron">{formatTimeShort(raceState.targetStintTime)}</span></div>
-                                        <div>MAX: <span className="text-red-500 orbitron">{formatTimeShort(raceState.maxStintTime)}</span></div>
-                                    </div>
-                                </div>
-
-                                {/* Time Grid */}
-                                <div className="grid grid-cols-4 gap-2">
-                                    <div className="panel p-2 rounded-none relative text-center">
-                                        <div className="text-gray-400 text-xs">STINT LEFT</div>
-                                        <div className={`orbitron timer-sm ${raceState.timeRemaining <= 0 ? 'text-red-500' : 'text-green-500'}`}>
-                                            {formatTimeShort(raceState.timeRemaining)}
-                                        </div>
-                                    </div>
-                                    <div className="panel p-2 rounded-none relative text-center">
-                                        <div className="text-gray-400 text-xs">RACE LEFT</div>
-                                        <div className="orbitron timer-sm text-white">{formatTimeShort(raceState.totalRaceTimeRemaining)}</div>
-                                    </div>
-                                    <div className="panel p-2 rounded-none relative text-center">
-                                        <div className="text-gray-400 text-xs">CHANGES</div>
-                                        <div className="orbitron timer-sm text-white">{raceState.driverChanges}</div>
-                                    </div>
-                                    <div className="panel p-2 rounded-none relative text-center">
-                                        <div className="text-gray-400 text-xs">REQUIRED</div>
-                                        <div className="orbitron timer-sm text-cyan-400">
-                                            {raceState.isRaceActive ? formatTimeShort(raceState.requiredStintTime) : '--:--'}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Controls */}
-                                <div className="panel p-3 rounded-none relative">
-                                    <div className="flex gap-2 mb-2">
-                                        <input
-                                            type="text"
-                                            value={driverName}
-                                            onChange={(e) => setDriverName(e.target.value)}
-                                            onKeyPress={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    if (!raceState.isRaceActive) startRace();
-                                                    else changeDriver();
-                                                }
-                                            }}
-                                            placeholder="DRIVER NAME"
-                                            className="flex-1 px-3 py-2 rounded-none bg-black border border-gray-700 text-white orbitron text-sm"
-                                            list="driver-list"
-                                        />
-                                        <datalist id="driver-list">
-                                            {raceState.driverList?.map((d, i) => <option key={i} value={d} />)}
-                                        </datalist>
-                                        <button onClick={() => { setShowDrivers(!showDrivers); if (!showDrivers) loadDriverList(); }}
-                                            className="btn-sec rounded-none text-xs px-3">
-                                            👥
-                                        </button>
-                                    </div>
-                                    <div className="grid grid-cols-6 gap-2 text-xs">
-                                        <button onClick={startRace} disabled={raceState.isRaceActive} className="btn-f1 rounded-none py-2 col-span-2">START</button>
-                                        <button onClick={changeDriver} disabled={!raceState.isRaceActive} className="btn-f1 rounded-none py-2 col-span-2">CHANGE</button>
-                                        <button onClick={pauseStint} disabled={!raceState.isRaceActive || !raceState.stintStartTime || raceState.isPaused} className="btn-sec rounded-none py-2">PAUSE</button>
-                                        <button onClick={resumeStint} disabled={!raceState.isRaceActive || !raceState.isPaused} className="btn-sec rounded-none py-2">RESUME</button>
-                                        <button onClick={endRace} disabled={!raceState.isRaceActive} className="btn-f1 rounded-none py-2 col-span-6 bg-red-900">END RACE</button>
-                                    </div>
-                                </div>
-
-                                {/* Driver List Manager */}
-                                {showDrivers && (
-                                    <div className="panel p-3 rounded-none relative">
-                                        <div className="text-gray-400 text-xs mb-2">DRIVER LIST</div>
-                                        <div className="flex gap-2 mb-2">
-                                            <input
-                                                type="text"
-                                                value={newDriver}
-                                                onChange={(e) => setNewDriver(e.target.value)}
-                                                onKeyPress={(e) => {
-                                                    if (e.key === 'Enter' && newDriver.trim()) {
-                                                        setDriverList([...driverList, newDriver]);
-                                                        setNewDriver('');
-                                                    }
-                                                }}
-                                                placeholder="ADD DRIVER"
-                                                className="flex-1 px-2 py-1 bg-black border border-gray-700 text-white text-sm"
-                                            />
-                                            <button onClick={() => {
-                                                if (newDriver.trim()) {
-                                                    setDriverList([...driverList, newDriver]);
-                                                    setNewDriver('');
-                                                }
-                                            }} className="btn-f1 rounded-none text-xs px-3">+</button>
-                                        </div>
-                                        <div className="space-y-1 max-h-32 overflow-y-auto">
-                                            {driverList.map((d, i) => (
-                                                <div key={i} className="flex justify-between items-center bg-black bg-opacity-50 px-2 py-1 text-sm">
-                                                    <span className="text-white">{d}</span>
-                                                    <button onClick={() => setDriverList(driverList.filter((_, idx) => idx !== i))}
-                                                        className="text-red-500 hover:text-red-400 text-xs">✕</button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <button onClick={saveDriverList} className="btn-f1 rounded-none text-xs w-full mt-2 py-1">SAVE LIST</button>
-                                    </div>
-                                )}
-
-                                {/* Optimal Calculator */}
-                                {raceState.optimal && raceState.optimal.confidence > 0 && (
-                                    <div className="panel p-3 rounded-none relative border-l-4 border-cyan-500">
-                                        <div className="text-cyan-400 text-xs mb-2">OPTIMAL: {formatTime(raceState.optimal.optimalTime)} ({raceState.optimal.confidence}%)</div>
-                                        <div className="text-white text-sm">{raceState.optimal.recommendation}</div>
-                                        <div className="grid grid-cols-4 gap-2 mt-2 text-xs">
-                                            <div><span className="text-gray-400">AVG:</span> <span className="orbitron text-white">{formatTimeShort(raceState.optimal.analysis.averageStintTime)}</span></div>
-                                            <div><span className="text-gray-400">CONS:</span> <span className="orbitron text-white">{raceState.optimal.analysis.consistency}%</span></div>
-                                            <div><span className="text-gray-400">TARGET:</span> <span className="orbitron text-white">{raceState.optimal.analysis.stintsAtTarget}/{raceState.optimal.analysis.totalStintsCompleted}</span></div>
-                                            <div><span className="text-gray-400">OVER:</span> <span className="orbitron text-red-400">{raceState.optimal.analysis.stintsOverMax}</span></div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Right Column - History */}
-                            <div className="xl:col-span-1">
-                                <div className="panel p-3 rounded-none relative">
-                                    <div className="text-gray-400 text-xs mb-2">STINT HISTORY</div>
-                                    <div className="space-y-1 max-h-[600px] overflow-y-auto">
-                                        {raceState.stintHistory.length === 0 ? (
-                                            <div className="text-center text-gray-500 py-8 orbitron text-xs">NO DATA</div>
-                                        ) : (
-                                            raceState.stintHistory.slice().reverse().map((stint, index) => {
-                                                const num = raceState.stintHistory.length - index;
-                                                return (
-                                                    <div key={index} className={`stint-card p-2 rounded-none ${stint.targetMet && !stint.overMax ? 'target-met' : stint.overMax ? 'over-max' : ''}`}>
-                                                        <div className="flex justify-between items-start">
-                                                            <div>
-                                                                <div className="orbitron text-gray-400 text-xs">#{num}</div>
-                                                                <div className="text-white font-bold text-sm">{stint.driver}</div>
-                                                            </div>
-                                                            <div className="orbitron text-lg font-bold text-white">{formatTimeShort(stint.duration)}</div>
-                                                        </div>
-                                                        <div className="mt-1">
-                                                            {stint.overMax ? (
-                                                                <span className="text-xs px-1 bg-red-600 text-white font-bold">OVER</span>
-                                                            ) : stint.targetMet ? (
-                                                                <span className="text-xs px-1 bg-green-600 text-white font-bold">TARGET</span>
-                                                            ) : (
-                                                                <span className="text-xs px-1 bg-yellow-600 text-white font-bold">SHORT</span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
                 </div>
             );
         }

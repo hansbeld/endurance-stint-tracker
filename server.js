@@ -1,32 +1,47 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const app = express();
 const PORT = 3000;
 
 app.use(express.json());
 app.use(express.static('public'));
 
-// Multi-session data storage - support for multiple cars
+// Load car configuration from JSON file
+let carsConfig = { cars: [] };
+try {
+  const configData = fs.readFileSync(path.join(__dirname, 'cars.json'), 'utf8');
+  carsConfig = JSON.parse(configData);
+  console.log('Loaded cars configuration:', carsConfig);
+} catch (error) {
+  console.error('Error loading cars.json:', error);
+}
+
+// Session data for both cars
 let sessions = {};
 
-// Default session template
-const createSession = (carNumber) => ({
-  carNumber,
-  totalRaceTime: 6 * 60 * 60 * 1000,
-  targetStintTime: 30 * 60 * 1000,
-  maxStintTime: 45 * 60 * 1000,
-  maxDriverChanges: 12,
-  currentDriver: '',
-  stintStartTime: null,
-  raceStartTime: null,
-  isRaceActive: false,
-  isPaused: false,
-  pausedTime: 0,
-  driverChanges: 0,
-  stintHistory: [],
-  simulationMode: false,
-  targetStintReached: false,
-  driverList: []
+// Initialize sessions for configured cars
+carsConfig.cars.forEach(car => {
+  sessions[car.number] = {
+    carNumber: car.number,
+    carName: car.name,
+    driverList: car.drivers,
+    totalRaceTime: 6 * 60 * 60 * 1000,
+    targetStintTime: 30 * 60 * 1000,
+    maxStintTime: 45 * 60 * 1000,
+    maxDriverChanges: 11,
+    plannedChanges: 11, // Planned driver changes
+    currentDriver: '',
+    stintStartTime: null,
+    raceStartTime: null,
+    isRaceActive: false,
+    isPaused: false,
+    pausedTime: 0,
+    driverChanges: 0,
+    stintHistory: [],
+    simulationMode: false,
+    targetStintReached: false
+  };
 });
 
 // Global settings
@@ -34,38 +49,80 @@ let globalSettings = {
   totalRaceTime: 6,
   targetStintTime: 30,
   maxStintTime: 45,
-  maxDriverChanges: 12,
+  maxDriverChanges: 11, // Minimum stints required (used for reference)
+  plannedChanges: 11, // Planned number of driver changes (stints - 1)
   simulationMode: false
 };
 
-// Helper to get or create session
-const getSession = (carNumber) => {
-  if (!sessions[carNumber]) {
-    sessions[carNumber] = createSession(carNumber);
-    sessions[carNumber].totalRaceTime = globalSettings.totalRaceTime * 60 * 60 * 1000;
-    sessions[carNumber].targetStintTime = globalSettings.targetStintTime * 60 * 1000;
-    sessions[carNumber].maxStintTime = globalSettings.maxStintTime * 60 * 1000;
-    sessions[carNumber].maxDriverChanges = globalSettings.maxDriverChanges;
-    sessions[carNumber].simulationMode = globalSettings.simulationMode;
+// Calculate remaining stints needed based on time
+function calculateRemainingStints(totalRaceTimeRemaining, maxStintTime) {
+  if (totalRaceTimeRemaining <= 0) return { stintsNeeded: 0, avgStintTime: 0 };
+  
+  // Calculate minimum stints needed if we use max stint time
+  const minStints = Math.ceil(totalRaceTimeRemaining / maxStintTime);
+  
+  // Calculate average stint time needed
+  const avgStintTime = totalRaceTimeRemaining / minStints;
+  
+  return {
+    stintsNeeded: minStints,
+    avgStintTime: Math.round(avgStintTime)
+  };
+}
+
+// Calculate based on planned changes strategy
+function calculatePlannedStrategy(totalRaceTime, totalRaceTimeRemaining, driverChangesDone, plannedChanges) {
+  const changesRemaining = plannedChanges - driverChangesDone;
+  const stintsRemaining = changesRemaining + 1; // stints = changes + 1
+  
+  if (stintsRemaining <= 0 || totalRaceTimeRemaining <= 0) {
+    return {
+      stintsRemaining: 0,
+      requiredStintTime: 0,
+      changesRemaining: 0
+    };
   }
-  return sessions[carNumber];
-};
+  
+  const requiredStintTime = totalRaceTimeRemaining / stintsRemaining;
+  
+  return {
+    stintsRemaining,
+    requiredStintTime: Math.round(requiredStintTime),
+    changesRemaining
+  };
+}
 
 // Calculate optimal stint
 function calculateOptimalStint(raceData) {
+  const currentTime = Date.now();
+  const timeMultiplier = raceData.simulationMode ? 60 : 1;
+  
+  let totalRaceTimeElapsed = 0;
+  let totalRaceTimeRemaining = raceData.totalRaceTime;
+  
+  if (raceData.raceStartTime && raceData.isRaceActive) {
+    const realRaceElapsed = currentTime - raceData.raceStartTime;
+    totalRaceTimeElapsed = realRaceElapsed * timeMultiplier;
+    totalRaceTimeRemaining = raceData.totalRaceTime - totalRaceTimeElapsed;
+  }
+
+  // Calculate remaining stints using improved algorithm
+  const minStintsNeeded = Math.ceil(totalRaceTimeRemaining / raceData.maxStintTime);
+  const optimalTime = minStintsNeeded > 0 ? totalRaceTimeRemaining / minStintsNeeded : 0;
+
   if (raceData.stintHistory.length === 0) {
     return {
-      optimalTime: raceData.targetStintTime,
+      optimalTime: Math.round(optimalTime),
       confidence: 0,
-      recommendation: 'No data yet',
+      recommendation: 'No data yet - use calculated time',
       analysis: {
         averageStintTime: 0,
         totalStintsCompleted: 0,
         stintsAtTarget: 0,
         stintsOverMax: 0,
         consistency: 0,
-        timeNeededPerStint: 0,
-        stintsRemaining: 0
+        calculatedTime: Math.round(optimalTime),
+        stintsRemaining: minStintsNeeded
       }
     };
   }
@@ -83,48 +140,51 @@ function calculateOptimalStint(raceData) {
   const stdDev = Math.sqrt(variance);
   const consistency = Math.max(0, 100 - (stdDev / averageStintTime * 100));
 
-  const currentTime = Date.now();
-  const timeMultiplier = raceData.simulationMode ? 60 : 1;
-  let totalRaceTimeElapsed = 0;
-  if (raceData.raceStartTime && raceData.isRaceActive) {
-    const realElapsed = currentTime - raceData.raceStartTime;
-    totalRaceTimeElapsed = realElapsed * timeMultiplier;
+  let recommendation = 'Use calculated time';
+  let confidence = 50;
+
+  // Compare calculated optimal vs average pace
+  // If optimal < average: You're running LONG, need to do SHORTER stints
+  // If optimal > average: You're running SHORT, can do LONGER stints
+  const paceDifference = ((optimalTime - averageStintTime) / averageStintTime) * 100;
+  
+  if (Math.abs(paceDifference) < 5) {
+    recommendation = 'On pace - maintain current stint times';
+    confidence = 85;
+  } else if (paceDifference < -10) {
+    recommendation = 'SHORTEN stints - you\'re running too long!';
+    confidence = 90;
+  } else if (paceDifference < -5) {
+    recommendation = 'Need slightly shorter stints';
+    confidence = 80;
+  } else if (paceDifference > 10) {
+    recommendation = 'Can EXTEND stints - running short';
+    confidence = 85;
+  } else if (paceDifference > 10) {
+    recommendation = 'Can EXTEND stints - running short';
+    confidence = 85;
+  } else if (paceDifference > 5) {
+    recommendation = 'Can do slightly longer stints';
+    confidence = 80;
   }
 
-  const totalRaceTimeRemaining = raceData.totalRaceTime - totalRaceTimeElapsed;
-  const remainingChanges = raceData.maxDriverChanges - raceData.driverChanges;
-  const stintsRemaining = remainingChanges;
-  const timeNeededPerStint = stintsRemaining > 0 ? totalRaceTimeRemaining / (stintsRemaining + 1) : totalRaceTimeRemaining;
-
-  let optimalTime = raceData.targetStintTime;
-  let recommendation = 'Aim for target';
-  let confidence = 70;
-
-  if (totalStints >= 3) {
-    const performanceWeight = 0.4;
-    const requirementWeight = 0.6;
-    const recentStints = stints.slice(-3);
-    const recentAvg = recentStints.reduce((sum, s) => sum + s.duration, 0) / recentStints.length;
-    const performanceBasedTime = consistency > 70 ? recentAvg : averageStintTime;
-    
-    optimalTime = (performanceBasedTime * performanceWeight) + (timeNeededPerStint * requirementWeight);
-    optimalTime = Math.max(raceData.targetStintTime * 0.9, Math.min(optimalTime, raceData.maxStintTime * 0.95));
-    
-    if (optimalTime > averageStintTime * 1.1) {
-      recommendation = 'Extend stints';
-      confidence = 75;
-    } else if (optimalTime < averageStintTime * 0.9) {
-      recommendation = 'Shorter stints OK';
-      confidence = 80;
-    } else {
-      recommendation = 'On pace';
-      confidence = 85;
-    }
-  }
-
-  if (stintsOverMax > totalStints * 0.3) {
-    recommendation = '⚠ ' + recommendation;
+  // Adjust confidence based on consistency
+  if (consistency > 85) {
+    confidence = Math.min(confidence + 10, 99);
+  } else if (consistency < 60) {
     confidence = Math.max(confidence - 15, 50);
+  }
+
+  // Warning for over-max stints
+  if (stintsOverMax > totalStints * 0.3) {
+    recommendation = '⚠ ' + recommendation + ' (Too many over-max)';
+    confidence = Math.max(confidence - 20, 40);
+  }
+
+  // Warning if optimal exceeds max
+  if (optimalTime > raceData.maxStintTime * 0.98) {
+    recommendation = '⚠ Need MAXIMUM stints to finish!';
+    confidence = 95;
   }
 
   return {
@@ -137,16 +197,23 @@ function calculateOptimalStint(raceData) {
       stintsAtTarget,
       stintsOverMax,
       consistency: Math.round(consistency),
-      timeNeededPerStint: Math.round(timeNeededPerStint),
-      stintsRemaining
+      calculatedTime: Math.round(optimalTime),
+      stintsRemaining: minStintsNeeded,
+      paceDifferencePercent: Math.round(paceDifference)
     }
   };
 }
+
+// Get cars configuration
+app.get('/api/cars', (req, res) => {
+  res.json(carsConfig);
+});
 
 // Get all sessions
 app.get('/api/sessions', (req, res) => {
   res.json(Object.keys(sessions).map(carNumber => ({
     carNumber,
+    carName: sessions[carNumber].carName,
     isActive: sessions[carNumber].isRaceActive,
     currentDriver: sessions[carNumber].currentDriver,
     driverChanges: sessions[carNumber].driverChanges
@@ -156,7 +223,11 @@ app.get('/api/sessions', (req, res) => {
 // Get race state for specific car
 app.get('/api/race-state/:carNumber', (req, res) => {
   const { carNumber } = req.params;
-  const raceData = getSession(carNumber);
+  const raceData = sessions[carNumber];
+  
+  if (!raceData) {
+    return res.status(404).json({ error: 'Car not found' });
+  }
   
   const currentTime = Date.now();
   const timeMultiplier = raceData.simulationMode ? 60 : 1;
@@ -185,9 +256,17 @@ app.get('/api/race-state/:carNumber', (req, res) => {
     totalRaceTimeRemaining = raceData.totalRaceTime - totalRaceTimeElapsed;
   }
 
-  const remainingChanges = raceData.maxDriverChanges - raceData.driverChanges;
-  const stintsRemaining = remainingChanges;
-  const requiredStintTime = stintsRemaining > 0 ? totalRaceTimeRemaining / (stintsRemaining + 1) : totalRaceTimeRemaining;
+  // Calculate remaining stints using planned changes strategy
+  const plannedCalc = calculatePlannedStrategy(
+    raceData.totalRaceTime,
+    totalRaceTimeRemaining,
+    raceData.driverChanges,
+    raceData.plannedChanges
+  );
+  
+  // Also calculate minimum stints (safety check)
+  const minStintCalc = calculateRemainingStints(totalRaceTimeRemaining, raceData.maxStintTime);
+  
   const optimalStintData = calculateOptimalStint(raceData);
 
   res.json({
@@ -195,10 +274,12 @@ app.get('/api/race-state/:carNumber', (req, res) => {
     timeInCar,
     timeRemaining,
     totalRaceTimeRemaining,
+    totalRaceTimeElapsed,
     optimal: optimalStintData,
-    remainingChanges,
-    stintsRemaining: stintsRemaining + 1,
-    requiredStintTime,
+    stintsRemaining: plannedCalc.stintsRemaining, // Based on planned changes
+    requiredStintTime: plannedCalc.requiredStintTime, // Based on planned changes
+    changesRemaining: plannedCalc.changesRemaining, // New field
+    minStintsNeeded: minStintCalc.stintsNeeded, // Safety minimum
     targetStintReached: raceData.targetStintReached,
     simulationMode: raceData.simulationMode,
     timeMultiplier
@@ -209,7 +290,11 @@ app.get('/api/race-state/:carNumber', (req, res) => {
 app.post('/api/start-race/:carNumber', (req, res) => {
   const { carNumber } = req.params;
   const { driverName } = req.body;
-  const raceData = getSession(carNumber);
+  const raceData = sessions[carNumber];
+  
+  if (!raceData) {
+    return res.status(404).json({ error: 'Car not found' });
+  }
   
   if (!driverName) {
     return res.status(400).json({ error: 'Driver name is required' });
@@ -232,7 +317,11 @@ app.post('/api/start-race/:carNumber', (req, res) => {
 app.post('/api/change-driver/:carNumber', (req, res) => {
   const { carNumber } = req.params;
   const { driverName } = req.body;
-  const raceData = getSession(carNumber);
+  const raceData = sessions[carNumber];
+
+  if (!raceData) {
+    return res.status(404).json({ error: 'Car not found' });
+  }
 
   if (!driverName) {
     return res.status(400).json({ error: 'Driver name is required' });
@@ -275,10 +364,14 @@ app.post('/api/change-driver/:carNumber', (req, res) => {
   });
 });
 
-// Pause/Resume/End stint
+// Pause stint
 app.post('/api/pause-stint/:carNumber', (req, res) => {
   const { carNumber } = req.params;
-  const raceData = getSession(carNumber);
+  const raceData = sessions[carNumber];
+  
+  if (!raceData) {
+    return res.status(404).json({ error: 'Car not found' });
+  }
   
   if (!raceData.isRaceActive || !raceData.stintStartTime || raceData.isPaused) {
     return res.status(400).json({ error: 'Cannot pause' });
@@ -291,9 +384,14 @@ app.post('/api/pause-stint/:carNumber', (req, res) => {
   res.json({ success: true, message: 'Stint paused' });
 });
 
+// Resume stint
 app.post('/api/resume-stint/:carNumber', (req, res) => {
   const { carNumber } = req.params;
-  const raceData = getSession(carNumber);
+  const raceData = sessions[carNumber];
+  
+  if (!raceData) {
+    return res.status(404).json({ error: 'Car not found' });
+  }
   
   if (!raceData.isRaceActive || !raceData.isPaused) {
     return res.status(400).json({ error: 'Cannot resume' });
@@ -307,9 +405,14 @@ app.post('/api/resume-stint/:carNumber', (req, res) => {
   res.json({ success: true, message: 'Stint resumed' });
 });
 
+// End stint
 app.post('/api/end-stint/:carNumber', (req, res) => {
   const { carNumber } = req.params;
-  const raceData = getSession(carNumber);
+  const raceData = sessions[carNumber];
+  
+  if (!raceData) {
+    return res.status(404).json({ error: 'Car not found' });
+  }
   
   if (!raceData.isRaceActive || !raceData.stintStartTime) {
     return res.status(400).json({ error: 'No active stint' });
@@ -340,9 +443,14 @@ app.post('/api/end-stint/:carNumber', (req, res) => {
   res.json({ success: true, stint: stintRecord });
 });
 
+// End race
 app.post('/api/end-race/:carNumber', (req, res) => {
   const { carNumber } = req.params;
-  const raceData = getSession(carNumber);
+  const raceData = sessions[carNumber];
+  
+  if (!raceData) {
+    return res.status(404).json({ error: 'Car not found' });
+  }
   
   if (raceData.stintStartTime) {
     const endTime = Date.now();
@@ -375,71 +483,35 @@ app.post('/api/end-race/:carNumber', (req, res) => {
   res.json({ success: true, message: 'Race ended', history: finalHistory });
 });
 
-// Driver list management
-app.post('/api/session/:carNumber/drivers', (req, res) => {
-  const { carNumber } = req.params;
-  const { drivers } = req.body;
-  const raceData = getSession(carNumber);
-  
-  raceData.driverList = drivers || [];
-  res.json({ success: true, driverList: raceData.driverList });
-});
-
-app.get('/api/session/:carNumber/drivers', (req, res) => {
-  const { carNumber } = req.params;
-  const raceData = getSession(carNumber);
-  
-  res.json({ driverList: raceData.driverList });
-});
-
 // Settings
 app.get('/api/settings', (req, res) => {
   res.json(globalSettings);
 });
 
 app.post('/api/settings', (req, res) => {
-  const { targetStintTime, maxStintTime, totalRaceTime, maxDriverChanges, simulationMode } = req.body;
+  const { targetStintTime, maxStintTime, totalRaceTime, maxDriverChanges, plannedChanges, simulationMode } = req.body;
 
   if (targetStintTime !== undefined) globalSettings.targetStintTime = targetStintTime;
   if (maxStintTime !== undefined) globalSettings.maxStintTime = maxStintTime;
   if (totalRaceTime !== undefined) globalSettings.totalRaceTime = totalRaceTime;
   if (maxDriverChanges !== undefined) globalSettings.maxDriverChanges = maxDriverChanges;
+  if (plannedChanges !== undefined) globalSettings.plannedChanges = plannedChanges;
   if (simulationMode !== undefined) globalSettings.simulationMode = simulationMode;
+
+  // Update all sessions
+  Object.keys(sessions).forEach(carNumber => {
+    sessions[carNumber].targetStintTime = globalSettings.targetStintTime * 60 * 1000;
+    sessions[carNumber].maxStintTime = globalSettings.maxStintTime * 60 * 1000;
+    sessions[carNumber].totalRaceTime = globalSettings.totalRaceTime * 60 * 60 * 1000;
+    sessions[carNumber].maxDriverChanges = globalSettings.maxDriverChanges;
+    sessions[carNumber].plannedChanges = globalSettings.plannedChanges;
+    sessions[carNumber].simulationMode = globalSettings.simulationMode;
+  });
 
   res.json({ success: true, settings: globalSettings });
 });
 
-// Delete session
-app.delete('/api/session/:carNumber', (req, res) => {
-  const { carNumber } = req.params;
-  
-  if (sessions[carNumber]) {
-    delete sessions[carNumber];
-  }
-  
-  res.json({ success: true });
-});
-
-// Create a new car session
-app.post('/api/session/create', (req, res) => {
-  const { carNumber } = req.body;
-  if (!carNumber) return res.status(400).json({ error: 'Car number is required' });
-  if (sessions[carNumber]) return res.status(400).json({ error: 'Car already exists' });
-
-  // Initialize session using your existing helper
-  sessions[carNumber] = createSession(carNumber);
-
-  // Apply global settings
-  sessions[carNumber].totalRaceTime = globalSettings.totalRaceTime * 60 * 60 * 1000;
-  sessions[carNumber].targetStintTime = globalSettings.targetStintTime * 60 * 1000;
-  sessions[carNumber].maxStintTime = globalSettings.maxStintTime * 60 * 1000;
-  sessions[carNumber].maxDriverChanges = globalSettings.maxDriverChanges;
-  sessions[carNumber].simulationMode = globalSettings.simulationMode;
-
-  res.json({ success: true, session: sessions[carNumber] });
-});
-
-
 app.listen(PORT, () => {
   console.log(`Endurance Race Stint Tracker running on http://localhost:${PORT}`);
+  console.log(`Tracking cars: ${carsConfig.cars.map(c => `#${c.number} (${c.name})`).join(', ')}`);
 });
