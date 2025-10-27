@@ -56,17 +56,17 @@ let globalSettings = {
 };
 
 // Calculate remaining stints needed based on time
-function calculateRemainingStints(totalRaceTimeRemaining, maxStintTime) {
+function calculateRemainingStints(totalRaceTimeRemaining, targetStintTime) {
   if (totalRaceTimeRemaining <= 0) return { stintsNeeded: 0, avgStintTime: 0 };
-  
-  // Calculate minimum stints needed if we use max stint time
-  const minStints = Math.ceil(totalRaceTimeRemaining / maxStintTime);
-  
+
+  // Calculate stints needed based on target stint time
+  const stintsNeeded = Math.ceil(totalRaceTimeRemaining / targetStintTime);
+
   // Calculate average stint time needed
-  const avgStintTime = totalRaceTimeRemaining / minStints;
-  
+  const avgStintTime = totalRaceTimeRemaining / stintsNeeded;
+
   return {
-    stintsNeeded: minStints,
+    stintsNeeded: stintsNeeded,
     avgStintTime: Math.round(avgStintTime)
   };
 }
@@ -107,8 +107,8 @@ function calculateOptimalStint(raceData) {
     totalRaceTimeRemaining = raceData.totalRaceTime - totalRaceTimeElapsed;
   }
 
-  // Calculate remaining stints using improved algorithm
-  const minStintsNeeded = Math.ceil(totalRaceTimeRemaining / raceData.maxStintTime);
+  // Calculate remaining stints based on target stint time
+  const minStintsNeeded = Math.ceil(totalRaceTimeRemaining / raceData.targetStintTime);
   const optimalTime = minStintsNeeded > 0 ? totalRaceTimeRemaining / minStintsNeeded : 0;
 
   if (raceData.stintHistory.length === 0) {
@@ -241,14 +241,18 @@ app.get('/api/race-state/:carNumber', (req, res) => {
   if (raceData.isRaceActive && raceData.stintStartTime && !raceData.isPaused) {
     const realElapsed = currentTime - raceData.stintStartTime;
     timeInCar = realElapsed * timeMultiplier;
-    timeRemaining = raceData.maxStintTime - timeInCar;
-    
+    // Calculate time remaining based on calculated target or target stint time
+    const targetTime = raceData.currentStintTargetCalc > 0 ? raceData.currentStintTargetCalc : raceData.targetStintTime;
+    timeRemaining = targetTime - timeInCar;
+
     if (timeInCar >= raceData.targetStintTime && !raceData.targetStintReached) {
       raceData.targetStintReached = true;
     }
   } else if (raceData.isPaused) {
     timeInCar = raceData.pausedTime;
-    timeRemaining = raceData.maxStintTime - timeInCar;
+    // Calculate time remaining based on calculated target or target stint time
+    const targetTime = raceData.currentStintTargetCalc > 0 ? raceData.currentStintTargetCalc : raceData.targetStintTime;
+    timeRemaining = targetTime - timeInCar;
   }
 
   if (raceData.raceStartTime && raceData.isRaceActive) {
@@ -265,8 +269,8 @@ app.get('/api/race-state/:carNumber', (req, res) => {
     raceData.plannedChanges
   );
   
-  // Also calculate minimum stints (safety check)
-  const minStintCalc = calculateRemainingStints(totalRaceTimeRemaining, raceData.maxStintTime);
+  // Also calculate minimum stints based on target time
+  const minStintCalc = calculateRemainingStints(totalRaceTimeRemaining, raceData.targetStintTime);
   
   const optimalStintData = calculateOptimalStint(raceData);
 
