@@ -330,33 +330,6 @@
                         </div>
                     </div>
 
-                    {/* ENHANCED Optimal Stint Display - Prominent */}
-                    {raceState.optimal && raceState.optimal.confidence > 0 && (
-                        <div className="panel p-3 rounded-none mb-2 border-l-4 border-cyan-500 bg-gradient-to-r from-cyan-900/20 to-transparent">
-                            <div className="flex justify-between items-center mb-2">
-                                <div>
-                                    <div className="text-cyan-400 text-xs font-bold">🎯 OPTIMAL NEXT STINT</div>
-                                    <div className="text-gray-400 text-xs">TIME LEFT ÷ STINTS LEFT</div>
-                                    <div className="orbitron timer-lg text-cyan-400 font-black">
-                                        {formatTime(raceState.optimal.optimalTime)}
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-gray-400 text-xs">CONFIDENCE</div>
-                                    <div className="orbitron text-2xl font-bold text-cyan-400">{raceState.optimal.confidence}%</div>
-                                </div>
-                            </div>
-                            <div className="text-white text-sm font-bold mb-1">{raceState.optimal.recommendation}</div>
-                            <div className="grid grid-cols-5 gap-2 text-xs">
-                                <div><span className="text-gray-400">AVG:</span> <span className="orbitron text-white">{formatTimeShort(raceState.optimal.analysis.averageStintTime)}</span></div>
-                                <div><span className="text-gray-400">CALC:</span> <span className="orbitron text-cyan-400">{formatTimeShort(raceState.optimal.analysis.calculatedTime)}</span></div>
-                                <div><span className="text-gray-400">DIFF:</span> <span className={`orbitron ${raceState.optimal.analysis.paceDifferencePercent < 0 ? 'text-red-400' : 'text-green-400'}`}>{raceState.optimal.analysis.paceDifferencePercent > 0 ? '+' : ''}{raceState.optimal.analysis.paceDifferencePercent}%</span></div>
-                                <div><span className="text-gray-400">ON TGT:</span> <span className="orbitron text-white">{raceState.optimal.analysis.stintsAtTarget}/{raceState.optimal.analysis.totalStintsCompleted}</span></div>
-                                <div><span className="text-gray-400">OVER:</span> <span className="orbitron text-red-400">{raceState.optimal.analysis.stintsOverMax}</span></div>
-                            </div>
-                        </div>
-                    )}
-
                     {/* Upcoming Driver Alert */}
                     {raceState.isRaceActive && getNextDriver() && (
                         <div className="panel p-2 rounded-none mb-2 border-l-2 border-yellow-500 bg-gradient-to-r from-yellow-900/20 to-transparent">
