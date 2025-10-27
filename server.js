@@ -316,9 +316,14 @@ app.post('/api/start-race/:carNumber', (req, res) => {
   raceData.stintHistory = [];
   raceData.targetStintReached = false;
 
-  // Calculate target for the first stint
-  const optimalData = calculateOptimalStint(raceData);
-  raceData.currentStintTargetCalc = optimalData.optimalTime;
+  // Calculate target for the first stint - evenly distribute remaining time across remaining stints
+  const plannedCalc = calculatePlannedStrategy(
+    raceData.totalRaceTime,
+    raceData.totalRaceTime, // Full race time at start
+    0, // No driver changes yet
+    raceData.plannedChanges
+  );
+  raceData.currentStintTargetCalc = plannedCalc.requiredStintTime;
 
   res.json({ success: true, message: 'Race started!' });
 });
@@ -367,9 +372,20 @@ app.post('/api/change-driver/:carNumber', (req, res) => {
   raceData.driverChanges++;
   raceData.targetStintReached = false;
 
-  // Calculate target for the new stint (do not recalculate later)
-  const optimalData = calculateOptimalStint(raceData);
-  raceData.currentStintTargetCalc = optimalData.optimalTime;
+  // Calculate target for the new stint - evenly distribute remaining time across remaining stints
+  const currentTime = Date.now();
+  const timeMultiplier = raceData.simulationMode ? 60 : 1;
+  const realRaceElapsed = currentTime - raceData.raceStartTime;
+  const totalRaceTimeElapsed = realRaceElapsed * timeMultiplier;
+  const totalRaceTimeRemaining = raceData.totalRaceTime - totalRaceTimeElapsed;
+
+  const plannedCalc = calculatePlannedStrategy(
+    raceData.totalRaceTime,
+    totalRaceTimeRemaining,
+    raceData.driverChanges,
+    raceData.plannedChanges
+  );
+  raceData.currentStintTargetCalc = plannedCalc.requiredStintTime;
 
   res.json({
     success: true,
