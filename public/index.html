@@ -362,6 +362,40 @@
                         </div>
                     )}
 
+                    {/* Remaining Stints Plan Table */}
+                    {raceState.isRaceActive && raceState.stintsRemaining > 0 && (
+                        <div className="panel p-3 rounded-none mb-2">
+                            <div className="text-cyan-400 text-xs font-bold mb-2">📋 REMAINING STINTS PLAN</div>
+                            <div className="space-y-1">
+                                {Array.from({ length: raceState.stintsRemaining }, (_, i) => {
+                                    const stintNumber = raceState.driverChanges + i + 1;
+                                    const isCurrentStint = i === 0;
+                                    return (
+                                        <div key={i} className={`flex justify-between items-center p-2 rounded ${
+                                            isCurrentStint ? 'bg-cyan-900/30 border-l-2 border-cyan-400' : 'bg-gray-800/30'
+                                        }`}>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`text-xs font-bold ${isCurrentStint ? 'text-cyan-400' : 'text-gray-400'}`}>
+                                                    Stint {stintNumber}
+                                                </span>
+                                                {isCurrentStint && (
+                                                    <span className="text-xs text-cyan-400 font-bold">← CURRENT</span>
+                                                )}
+                                            </div>
+                                            <span className={`orbitron text-sm font-bold ${isCurrentStint ? 'text-cyan-400' : 'text-white'}`}>
+                                                {formatTimeShort(raceState.requiredStintTime)}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div className="mt-2 pt-2 border-t border-gray-700 flex justify-between text-xs">
+                                <span className="text-gray-400">Total Remaining:</span>
+                                <span className="orbitron text-white font-bold">{formatTime(raceState.totalRaceTimeRemaining)}</span>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Controls */}
                     <div className="panel p-2 rounded-none mb-2">
                         <input
