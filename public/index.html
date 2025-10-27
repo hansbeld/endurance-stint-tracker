@@ -341,16 +341,28 @@
                                     <div className="text-white text-lg font-bold">{getNextDriver()}</div>
                                     {raceState.currentStintTargetCalc > 0 && (
                                         <div className="text-xs mt-1">
-                                            <span className="text-gray-400">Time to change: </span>
-                                            <span className={`orbitron font-bold ${
-                                                (raceState.currentStintTargetCalc - raceState.timeInCar) <= 0
-                                                    ? 'text-red-500'
-                                                    : (raceState.currentStintTargetCalc - raceState.timeInCar) <= 5 * 60 * 1000
-                                                        ? 'text-yellow-400'
-                                                        : 'text-green-500'
-                                            }`}>
-                                                {formatTimeShort(Math.max(0, raceState.currentStintTargetCalc - raceState.timeInCar))}
-                                            </span>
+                                            <div className="mb-1">
+                                                <span className="text-gray-400">Time to change: </span>
+                                                <span className={`orbitron font-bold ${
+                                                    (raceState.currentStintTargetCalc - raceState.timeInCar) <= 0
+                                                        ? 'text-red-500'
+                                                        : (raceState.currentStintTargetCalc - raceState.timeInCar) <= 5 * 60 * 1000
+                                                            ? 'text-yellow-400'
+                                                            : 'text-green-500'
+                                                }`}>
+                                                    {formatTimeShort(Math.max(0, raceState.currentStintTargetCalc - raceState.timeInCar))}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-400">Change at: </span>
+                                                <span className="orbitron font-bold text-cyan-400">
+                                                    {(() => {
+                                                        const timeRemaining = Math.max(0, raceState.currentStintTargetCalc - raceState.timeInCar);
+                                                        const estimatedTime = new Date(Date.now() + timeRemaining);
+                                                        return estimatedTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+                                                    })()}
+                                                </span>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
