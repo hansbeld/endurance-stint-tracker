@@ -42,7 +42,8 @@ carsConfig.cars.forEach(car => {
     simulationMode: false,
     targetStintReached: false,
     currentStintTargetCalc: 0, // Calculated target for current stint
-    currentStintTargetFrozen: 0 // Frozen target set at start of stint (Option 3)
+    currentStintTargetFrozen: 0, // Frozen target set at start of stint (Option 3)
+    equalizeDrivers: false // Feature: try to equalize average stint time per driver
   };
 });
 
@@ -53,7 +54,8 @@ let globalSettings = {
   maxStintTime: 45,
   maxDriverChanges: 11, // Minimum stints required (used for reference)
   plannedChanges: 11, // Planned number of driver changes (stints - 1)
-  simulationMode: false
+  simulationMode: false,
+  equalizeDrivers: false
 };
 
 // Calculate remaining stints needed based on time
@@ -76,7 +78,7 @@ function calculateRemainingStints(totalRaceTimeRemaining, targetStintTime) {
 function calculatePlannedStrategy(totalRaceTime, totalRaceTimeRemaining, driverChangesDone, plannedChanges) {
   const changesRemaining = plannedChanges - driverChangesDone;
   const stintsRemaining = changesRemaining + 1; // stints = changes + 1
-  
+
   if (stintsRemaining <= 0 || totalRaceTimeRemaining <= 0) {
     return {
       stintsRemaining: 0,
@@ -84,14 +86,45 @@ function calculatePlannedStrategy(totalRaceTime, totalRaceTimeRemaining, driverC
       changesRemaining: 0
     };
   }
-  
+
   const requiredStintTime = totalRaceTimeRemaining / stintsRemaining;
-  
+
   return {
     stintsRemaining,
     requiredStintTime: Math.round(requiredStintTime),
     changesRemaining
   };
+}
+
+// Calculate equalized target to balance driver averages
+function calculateEqualizedTarget(raceData, incomingDriver, baseTarget) {
+  // Calculate average stint time for incoming driver
+  const driverStints = raceData.stintHistory.filter(s => s.driver === incomingDriver);
+
+  if (driverStints.length === 0) {
+    // First stint for this driver, use base target
+    return baseTarget;
+  }
+
+  const driverTotalTime = driverStints.reduce((sum, s) => sum + s.duration, 0);
+  const driverAverage = driverTotalTime / driverStints.length;
+
+  // Calculate overall target average (total race time / total planned stints)
+  const totalPlannedStints = raceData.plannedChanges + 1;
+  const targetAverage = raceData.totalRaceTime / totalPlannedStints;
+
+  // Calculate adjustment: if driver is below target, give them more time
+  const difference = targetAverage - driverAverage;
+
+  // Apply a scaling factor to make gradual adjustments (50% of the difference)
+  const adjustment = difference * 0.5;
+  const adjustedTarget = baseTarget + adjustment;
+
+  // Constrain to reasonable bounds
+  const minTarget = raceData.targetStintTime; // 30 min
+  const maxTarget = raceData.maxStintTime; // 45 min
+
+  return Math.round(Math.max(minTarget, Math.min(maxTarget, adjustedTarget)));
 }
 
 // Calculate optimal stint
@@ -311,6 +344,7 @@ app.get('/api/race-state/:carNumber', (req, res) => {
     minStintsNeeded: minStintCalc.stintsNeeded, // Safety minimum
     targetStintReached: raceData.targetStintReached,
     simulationMode: raceData.simulationMode,
+    equalizeDrivers: raceData.equalizeDrivers, // Feature toggle for equalizing driver averages
     timeMultiplier,
     currentStintTargetCalc: currentStintTarget, // FROZEN target for current stint
     currentStintTargetFrozen: currentStintTarget, // Also expose separately
@@ -349,7 +383,17 @@ app.post('/api/start-race/:carNumber', (req, res) => {
     0,
     raceData.plannedChanges
   );
-  raceData.currentStintTargetFrozen = initialPlannedCalc.requiredStintTime;
+
+  // Apply equalization if enabled (won't affect first stint since no history)
+  if (raceData.equalizeDrivers) {
+    raceData.currentStintTargetFrozen = calculateEqualizedTarget(
+      raceData,
+      driverName,
+      initialPlannedCalc.requiredStintTime
+    );
+  } else {
+    raceData.currentStintTargetFrozen = initialPlannedCalc.requiredStintTime;
+  }
 
   res.json({ success: true, message: 'Race started!' });
 });
@@ -411,7 +455,17 @@ app.post('/api/change-driver/:carNumber', (req, res) => {
     raceData.driverChanges,
     raceData.plannedChanges
   );
-  raceData.currentStintTargetFrozen = newStintPlannedCalc.requiredStintTime;
+
+  // Apply equalization if enabled
+  if (raceData.equalizeDrivers) {
+    raceData.currentStintTargetFrozen = calculateEqualizedTarget(
+      raceData,
+      driverName,
+      newStintPlannedCalc.requiredStintTime
+    );
+  } else {
+    raceData.currentStintTargetFrozen = newStintPlannedCalc.requiredStintTime;
+  }
 
   res.json({
     success: true,
@@ -545,7 +599,7 @@ app.get('/api/settings', (req, res) => {
 });
 
 app.post('/api/settings', (req, res) => {
-  const { targetStintTime, maxStintTime, totalRaceTime, maxDriverChanges, plannedChanges, simulationMode } = req.body;
+  const { targetStintTime, maxStintTime, totalRaceTime, maxDriverChanges, plannedChanges, simulationMode, equalizeDrivers } = req.body;
 
   if (targetStintTime !== undefined) globalSettings.targetStintTime = targetStintTime;
   if (maxStintTime !== undefined) globalSettings.maxStintTime = maxStintTime;
@@ -553,6 +607,7 @@ app.post('/api/settings', (req, res) => {
   if (maxDriverChanges !== undefined) globalSettings.maxDriverChanges = maxDriverChanges;
   if (plannedChanges !== undefined) globalSettings.plannedChanges = plannedChanges;
   if (simulationMode !== undefined) globalSettings.simulationMode = simulationMode;
+  if (equalizeDrivers !== undefined) globalSettings.equalizeDrivers = equalizeDrivers;
 
   // Update all sessions
   Object.keys(sessions).forEach(carNumber => {
@@ -562,6 +617,7 @@ app.post('/api/settings', (req, res) => {
     sessions[carNumber].maxDriverChanges = globalSettings.maxDriverChanges;
     sessions[carNumber].plannedChanges = globalSettings.plannedChanges;
     sessions[carNumber].simulationMode = globalSettings.simulationMode;
+    sessions[carNumber].equalizeDrivers = globalSettings.equalizeDrivers;
   });
 
   res.json({ success: true, settings: globalSettings });

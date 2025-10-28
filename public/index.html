@@ -597,7 +597,8 @@
                 totalRaceTime: 6,
                 maxDriverChanges: 12,
                 plannedChanges: 11,
-                simulationMode: false
+                simulationMode: false,
+                equalizeDrivers: false
             });
 
             useEffect(() => {
@@ -679,13 +680,20 @@
                                         className="w-full px-2 py-1 bg-black border border-gray-700 text-white orbitron"
                                     />
                                 </div>
-                                <div>
+                                <div className="flex gap-4">
                                     <label className="flex items-center gap-1 cursor-pointer mt-4">
                                         <input type="checkbox" checked={settings.simulationMode}
                                             onChange={(e) => setSettings({...settings, simulationMode: e.target.checked})}
                                             className="w-4 h-4"
                                         />
                                         <span className="text-white font-bold">SIM</span>
+                                    </label>
+                                    <label className="flex items-center gap-1 cursor-pointer mt-4">
+                                        <input type="checkbox" checked={settings.equalizeDrivers}
+                                            onChange={(e) => setSettings({...settings, equalizeDrivers: e.target.checked})}
+                                            className="w-4 h-4"
+                                        />
+                                        <span className="text-white font-bold text-xs">EQUALIZE DRIVERS</span>
                                     </label>
                                 </div>
                             </div>
