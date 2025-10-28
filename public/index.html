@@ -282,11 +282,24 @@
                             <div className="text-red-500 font-bold text-xs mb-1 pulse-fast">⚠ OVER MAX TIME!</div>
                         )}
                         <div className="flex justify-between items-center">
-                            <div className={`orbitron timer-xl ${getTimerColor(raceState.timeInCar, raceState.targetStintTime, raceState.maxStintTime)} ${
-                                raceState.timeInCar >= raceState.maxStintTime ? 'pulse-fast' :
-                                raceState.timeInCar >= raceState.targetStintTime ? 'pulse' : ''
-                            }`}>
-                                {formatTime(raceState.timeInCar)}
+                            <div>
+                                <div className={`orbitron timer-xl ${getTimerColor(raceState.timeInCar, raceState.targetStintTime, raceState.maxStintTime)} ${
+                                    raceState.timeInCar >= raceState.maxStintTime ? 'pulse-fast' :
+                                    raceState.timeInCar >= raceState.targetStintTime ? 'pulse' : ''
+                                }`}>
+                                    {formatTime(raceState.timeInCar)}
+                                </div>
+                                {raceState.isRaceActive && raceState.timeInCar > 0 && (
+                                    <div className="text-xs mt-1">
+                                        <span className="text-gray-400">vs 30min: </span>
+                                        <span className={`orbitron font-bold ${
+                                            raceState.timeInCar > raceState.targetStintTime ? 'text-red-400' : 'text-green-400'
+                                        }`}>
+                                            {raceState.timeInCar > raceState.targetStintTime ? '+' : ''}
+                                            {formatTimeShort(raceState.timeInCar - raceState.targetStintTime)}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                             <div className="flex gap-2 text-xs">
                                 <div className="text-gray-400">TGT: <span className="text-yellow-400 orbitron">{formatTimeShort(raceState.targetStintTime)}</span></div>
@@ -423,28 +436,59 @@
                     {raceState.isRaceActive && raceState.stintsRemaining > 0 && (
                         <div className="panel p-3 rounded-none mb-2 flex-1 flex flex-col overflow-hidden">
                             <div className="text-cyan-400 text-xs font-bold mb-2">📋 REMAINING STINTS PLAN</div>
-                            <div className="flex-1 overflow-y-auto space-y-1">
-                                {Array.from({ length: raceState.stintsRemaining }, (_, i) => {
-                                    const stintNumber = raceState.driverChanges + i + 1;
-                                    const isCurrentStint = i === 0;
-                                    return (
-                                        <div key={i} className={`flex justify-between items-center p-2 rounded ${
-                                            isCurrentStint ? 'bg-cyan-900/30 border-l-2 border-cyan-400' : 'bg-gray-800/30'
-                                        }`}>
-                                            <div className="flex items-center gap-2">
-                                                <span className={`text-xs font-bold ${isCurrentStint ? 'text-cyan-400' : 'text-gray-400'}`}>
-                                                    Stint {stintNumber}
-                                                </span>
-                                                {isCurrentStint && (
-                                                    <span className="text-xs text-cyan-400 font-bold">← CURRENT</span>
-                                                )}
-                                            </div>
-                                            <span className={`orbitron text-sm font-bold ${isCurrentStint ? 'text-cyan-400' : 'text-white'}`}>
-                                                {formatTimeShort(raceState.requiredStintTime)}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
+                            <div className="flex-1 overflow-y-auto">
+                                <table className="w-full text-xs">
+                                    <thead className="sticky top-0 bg-gray-900">
+                                        <tr className="text-gray-400 border-b border-gray-700">
+                                            <th className="text-left py-1">Stint</th>
+                                            <th className="text-right py-1">Duration</th>
+                                            <th className="text-right py-1">End Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {Array.from({ length: raceState.stintsRemaining }, (_, i) => {
+                                            const stintNumber = raceState.driverChanges + i + 1;
+                                            const isCurrentStint = i === 0;
+
+                                            // Calculate cumulative time for end time
+                                            let cumulativeTime = 0;
+                                            if (isCurrentStint) {
+                                                // For current stint: time already in car + time remaining to frozen target
+                                                const timeLeftInStint = Math.max(0, raceState.currentStintTargetFrozen - raceState.timeInCar);
+                                                cumulativeTime = raceState.timeInCar + timeLeftInStint;
+                                            } else {
+                                                // For current stint contribution
+                                                const currentStintTotal = Math.max(0, raceState.currentStintTargetFrozen - raceState.timeInCar) + raceState.timeInCar;
+                                                // Plus all future stints before this one
+                                                cumulativeTime = currentStintTotal + (raceState.requiredStintTime * i);
+                                            }
+
+                                            // Calculate end time based on race start
+                                            const raceStartTime = raceState.raceStartTime ? new Date(raceState.raceStartTime) : new Date();
+                                            const endTime = new Date(raceStartTime.getTime() + cumulativeTime);
+                                            const endTimeStr = endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+
+                                            const duration = isCurrentStint ? raceState.currentStintTargetFrozen : raceState.requiredStintTime;
+
+                                            return (
+                                                <tr key={i} className={`${
+                                                    isCurrentStint ? 'bg-cyan-900/30 text-cyan-400 font-bold' : 'text-white'
+                                                }`}>
+                                                    <td className="py-1">
+                                                        <span>#{stintNumber}</span>
+                                                        {isCurrentStint && <span className="ml-2 text-xs">← NOW</span>}
+                                                    </td>
+                                                    <td className="text-right orbitron">
+                                                        {formatTimeShort(duration)}
+                                                    </td>
+                                                    <td className="text-right orbitron">
+                                                        {endTimeStr}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
                             </div>
                             <div className="mt-2 pt-2 border-t border-gray-700 flex justify-between text-xs">
                                 <span className="text-gray-400">Total Remaining:</span>
