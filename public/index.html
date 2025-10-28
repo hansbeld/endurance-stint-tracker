@@ -281,15 +281,17 @@
                         {raceState.timeInCar >= raceState.maxStintTime && (
                             <div className="text-red-500 font-bold text-xs mb-1 pulse-fast">⚠ OVER MAX TIME!</div>
                         )}
-                        <div className={`orbitron timer-xl ${getTimerColor(raceState.timeInCar, raceState.targetStintTime, raceState.maxStintTime)} ${
-                            raceState.timeInCar >= raceState.maxStintTime ? 'pulse-fast' :
-                            raceState.timeInCar >= raceState.targetStintTime ? 'pulse' : ''
-                        }`}>
-                            {formatTime(raceState.timeInCar)}
-                        </div>
-                        <div className="flex gap-3 mt-1 text-xs justify-end">
-                            <div className="text-gray-400">TGT: <span className="text-yellow-400 orbitron">{formatTimeShort(raceState.targetStintTime)}</span></div>
-                            <div className="text-gray-400">MAX: <span className="text-red-500 orbitron">{formatTimeShort(raceState.maxStintTime)}</span></div>
+                        <div className="flex justify-between items-center">
+                            <div className={`orbitron timer-xl ${getTimerColor(raceState.timeInCar, raceState.targetStintTime, raceState.maxStintTime)} ${
+                                raceState.timeInCar >= raceState.maxStintTime ? 'pulse-fast' :
+                                raceState.timeInCar >= raceState.targetStintTime ? 'pulse' : ''
+                            }`}>
+                                {formatTime(raceState.timeInCar)}
+                            </div>
+                            <div className="flex gap-2 text-xs">
+                                <div className="text-gray-400">TGT: <span className="text-yellow-400 orbitron">{formatTimeShort(raceState.targetStintTime)}</span></div>
+                                <div className="text-gray-400">MAX: <span className="text-red-500 orbitron">{formatTimeShort(raceState.maxStintTime)}</span></div>
+                            </div>
                         </div>
                         {raceState.currentStintTargetCalc > 0 && (
                             <div className="mt-1 text-xs flex justify-between items-center">
