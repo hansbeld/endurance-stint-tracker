@@ -41,7 +41,8 @@ carsConfig.cars.forEach(car => {
     stintHistory: [],
     simulationMode: false,
     targetStintReached: false,
-    currentStintTargetCalc: 0 // Calculated target for current stint
+    currentStintTargetCalc: 0, // Calculated target for current stint
+    currentStintTargetFrozen: 0 // Frozen target set at start of stint (Option 3)
   };
 });
 
@@ -261,9 +262,15 @@ app.get('/api/race-state/:carNumber', (req, res) => {
     raceData.plannedChanges
   );
 
-  // Adjust required time to exclude current stint (Option 2)
-  // This shows what FUTURE stints need to be, not including the current one
-  let adjustedRequiredTime = plannedCalc.requiredStintTime;
+  // Option 3: Calculate BOTH frozen current target AND live future target
+
+  // 1. FROZEN TARGET for current stint (set at driver change, doesn't change)
+  const currentStintTarget = raceData.currentStintTargetFrozen > 0
+    ? raceData.currentStintTargetFrozen
+    : raceData.targetStintTime;
+
+  // 2. LIVE FUTURE TARGET for planning next stints (excludes current stint)
+  let futureStintsRequired = plannedCalc.requiredStintTime;
   if (raceData.isRaceActive && raceData.stintStartTime && plannedCalc.stintsRemaining > 1) {
     // Time remaining AFTER this stint completes
     const futureRaceTime = totalRaceTimeRemaining - timeInCar;
@@ -271,16 +278,15 @@ app.get('/api/race-state/:carNumber', (req, res) => {
     const futureStints = plannedCalc.stintsRemaining - 1;
 
     if (futureStints > 0 && futureRaceTime > 0) {
-      adjustedRequiredTime = futureRaceTime / futureStints;
+      futureStintsRequired = futureRaceTime / futureStints;
     }
   }
 
-  // Now calculate time remaining using LIVE calculated target
-  const liveTargetTime = adjustedRequiredTime > 0 ? adjustedRequiredTime : raceData.targetStintTime;
-  timeRemaining = liveTargetTime - timeInCar;
+  // Use FROZEN target for current stint time remaining
+  timeRemaining = currentStintTarget - timeInCar;
 
-  // Check if calculated target is reached
-  if (raceData.isRaceActive && timeInCar >= liveTargetTime && !raceData.targetStintReached) {
+  // Check if frozen target is reached
+  if (raceData.isRaceActive && timeInCar >= currentStintTarget && !raceData.targetStintReached) {
     raceData.targetStintReached = true;
   }
   
@@ -297,13 +303,15 @@ app.get('/api/race-state/:carNumber', (req, res) => {
     totalRaceTimeElapsed,
     optimal: optimalStintData,
     stintsRemaining: plannedCalc.stintsRemaining, // Based on planned changes (includes current)
-    requiredStintTime: adjustedRequiredTime, // For FUTURE stints (excludes current) - UPDATES LIVE
-    changesRemaining: plannedCalc.changesRemaining, // New field
+    requiredStintTime: futureStintsRequired, // For FUTURE stints (excludes current) - UPDATES LIVE
+    changesRemaining: plannedCalc.changesRemaining,
     minStintsNeeded: minStintCalc.stintsNeeded, // Safety minimum
     targetStintReached: raceData.targetStintReached,
     simulationMode: raceData.simulationMode,
     timeMultiplier,
-    currentStintTargetCalc: adjustedRequiredTime // Live calculated target for future stints - UPDATES LIVE
+    currentStintTargetCalc: currentStintTarget, // FROZEN target for current stint
+    currentStintTargetFrozen: currentStintTarget, // Also expose separately
+    futureStintsRequired: futureStintsRequired // LIVE calculation for future stints
   });
 });
 
@@ -330,6 +338,15 @@ app.post('/api/start-race/:carNumber', (req, res) => {
   raceData.driverChanges = 0;
   raceData.stintHistory = [];
   raceData.targetStintReached = false;
+
+  // Set frozen target for this stint (Option 3)
+  const initialPlannedCalc = calculatePlannedStrategy(
+    raceData.totalRaceTime,
+    raceData.totalRaceTime,
+    0,
+    raceData.plannedChanges
+  );
+  raceData.currentStintTargetFrozen = initialPlannedCalc.requiredStintTime;
 
   res.json({ success: true, message: 'Race started!' });
 });
@@ -377,6 +394,21 @@ app.post('/api/change-driver/:carNumber', (req, res) => {
   raceData.pausedTime = 0;
   raceData.driverChanges++;
   raceData.targetStintReached = false;
+
+  // Set frozen target for this new stint (Option 3)
+  const currentTime = Date.now();
+  const timeMultiplier = raceData.simulationMode ? 60 : 1;
+  const realRaceElapsed = currentTime - raceData.raceStartTime;
+  const totalRaceTimeElapsed = realRaceElapsed * timeMultiplier;
+  const totalRaceTimeRemaining = raceData.totalRaceTime - totalRaceTimeElapsed;
+
+  const newStintPlannedCalc = calculatePlannedStrategy(
+    raceData.totalRaceTime,
+    totalRaceTimeRemaining,
+    raceData.driverChanges,
+    raceData.plannedChanges
+  );
+  raceData.currentStintTargetFrozen = newStintPlannedCalc.requiredStintTime;
 
   res.json({
     success: true,

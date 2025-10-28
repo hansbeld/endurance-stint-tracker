@@ -292,8 +292,17 @@
                             <div className="text-gray-400">MAX: <span className="text-red-500 orbitron">{formatTimeShort(raceState.maxStintTime)}</span></div>
                         </div>
                         {raceState.currentStintTargetCalc > 0 && (
-                            <div className="mt-1 text-xs">
-                                <div className="text-gray-400">Target calc: <span className="text-cyan-400 orbitron">{formatTimeShort(raceState.currentStintTargetCalc)}</span></div>
+                            <div className="mt-1 text-xs space-y-1">
+                                <div className="text-gray-400">
+                                    This stint: <span className="text-green-400 orbitron font-bold">{formatTimeShort(raceState.currentStintTargetCalc)}</span>
+                                    <span className="text-gray-500 ml-1">(frozen)</span>
+                                </div>
+                                {raceState.futureStintsRequired > 0 && raceState.stintsRemaining > 1 && (
+                                    <div className="text-gray-400">
+                                        Next stints: <span className="text-cyan-400 orbitron font-bold">{formatTimeShort(raceState.futureStintsRequired)}</span>
+                                        <span className="text-gray-500 ml-1">(live)</span>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -327,7 +336,7 @@
                             <div className="orbitron timer-sm text-cyan-400">{raceState.stintsRemaining || 0}</div>
                         </div>
                         <div className="panel p-2 rounded-none text-center">
-                            <div className="text-gray-400 text-xs">REQUIRED</div>
+                            <div className="text-gray-400 text-xs">NEXT STINTS</div>
                             <div className="orbitron timer-sm text-cyan-400">
                                 {raceState.isRaceActive ? formatTimeShort(raceState.requiredStintTime) : '--:--'}
                             </div>
