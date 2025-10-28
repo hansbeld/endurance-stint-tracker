@@ -298,12 +298,18 @@
                                 </div>
                                 {raceState.isRaceActive && raceState.timeInCar > 0 && (
                                     <div className="text-xs mt-1">
-                                        <span className="text-gray-400">vs TGT: </span>
+                                        <span className="text-gray-400">This stint frozen: </span>
                                         <span className={`orbitron font-bold ${
                                             raceState.timeInCar > raceState.currentStintTargetFrozen ? 'text-red-400' : 'text-green-400'
                                         }`}>
-                                            {raceState.timeInCar > raceState.currentStintTargetFrozen ? '+' : ''}
-                                            {formatTimeShort(raceState.timeInCar - raceState.currentStintTargetFrozen)}
+                                            {(() => {
+                                                const diff = raceState.timeInCar - raceState.currentStintTargetFrozen;
+                                                const sign = diff > 0 ? '+' : diff < 0 ? '-' : '';
+                                                const absDiff = Math.abs(diff);
+                                                const mins = Math.floor(absDiff / 60000);
+                                                const secs = Math.floor((absDiff % 60000) / 1000);
+                                                return `${sign}${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                                            })()}
                                         </span>
                                     </div>
                                 )}
