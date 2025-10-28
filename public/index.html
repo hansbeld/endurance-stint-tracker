@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Two-Car Stint Tracker</title>
+    <title>BELUKU Totalcare Racing Stint Tracker</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -89,14 +89,18 @@
             const [raceState, setRaceState] = useState(null);
             const [driverName, setDriverName] = useState('');
             const [lastTargetReached, setLastTargetReached] = useState(false);
+            const [currentTime, setCurrentTime] = useState(new Date());
             const audioRef = useRef(null);
+            const driverInputRef = useRef(null);
 
             useEffect(() => {
                 audioRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE');
                 updateDisplay();
-                const interval = setInterval(updateDisplay, 1000);
+                // Use faster update rate in simulation mode for smoother display
+                const updateInterval = raceState?.simulationMode ? 100 : 1000;
+                const interval = setInterval(updateDisplay, updateInterval);
                 return () => clearInterval(interval);
-            }, [carNumber]);
+            }, [carNumber, raceState?.simulationMode]);
 
             useEffect(() => {
                 if (raceState && raceState.targetStintReached && !lastTargetReached) {
@@ -106,6 +110,13 @@
                     setLastTargetReached(false);
                 }
             }, [raceState?.targetStintReached]);
+
+            useEffect(() => {
+                const clockInterval = setInterval(() => {
+                    setCurrentTime(new Date());
+                }, 1000);
+                return () => clearInterval(clockInterval);
+            }, []);
 
             const updateDisplay = async () => {
                 try {
@@ -156,6 +167,8 @@
                 const nextDriver = getNextDriver();
                 if (nextDriver) {
                     setDriverName(nextDriver);
+                    // Focus the input to make it clear the user can edit
+                    setTimeout(() => driverInputRef.current?.focus(), 0);
                 }
             };
 
@@ -240,10 +253,20 @@
                             <div>
                                 <div className="orbitron text-xl font-black text-red-500">#{carNumber}</div>
                                 <div className="text-gray-400 text-xs">{carName}</div>
+                                {raceState.isRaceActive &&
+                                 raceState.timeInCar >= (raceState.currentStintTargetFrozen - 150000) &&
+                                 raceState.timeInCar < raceState.currentStintTargetFrozen && (
+                                    <div className="orbitron text-sm font-black text-yellow-400 mt-1 animate-pulse">
+                                        🏁 PIT BOARD OUT
+                                    </div>
+                                )}
                             </div>
                             <div className="text-right">
+                                <div className="orbitron text-sm text-gray-400 mb-1">
+                                    {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+                                </div>
                                 <div className={`orbitron text-lg font-bold ${
-                                    !raceState.isRaceActive ? 'text-gray-500' : 
+                                    !raceState.isRaceActive ? 'text-gray-500' :
                                     raceState.isPaused ? 'text-yellow-400' : 'text-green-500'
                                 }`}>
                                     {!raceState.isRaceActive ? 'READY' : raceState.isPaused ? 'PAUSE' : 'LIVE'}
@@ -264,31 +287,70 @@
                     <div className={`panel p-3 rounded-none mb-2 ${
                         raceState.targetStintReached ? 'border-2 border-green-500' : ''
                     } ${
-                        raceState.timeRemaining > 0 && raceState.timeRemaining <= 5 * 60 * 1000 ? 'blink-red border-2' : ''
+                        raceState.timeInCar >= raceState.maxStintTime - 5 * 60 * 1000 ? 'blink-red border-2' : ''
                     }`}>
                         <div className="text-gray-400 text-xs mb-1">TIME IN CAR</div>
-                        {raceState.targetStintReached && (
+                        {raceState.targetStintReached && raceState.timeInCar < raceState.maxStintTime - 5 * 60 * 1000 && (
                             <div className="text-green-500 font-bold text-xs mb-1 pulse">✓ TARGET</div>
                         )}
-                        {raceState.timeRemaining > 0 && raceState.timeRemaining <= 5 * 60 * 1000 && (
-                            <div className="text-red-500 font-bold text-xs mb-1 pulse-fast">⚠ 5 MIN TO TARGET!</div>
+                        {raceState.timeRemaining > 0 && raceState.timeRemaining <= 5 * 60 * 1000 && raceState.timeInCar < raceState.maxStintTime - 5 * 60 * 1000 && (
+                            <div className="text-yellow-400 font-bold text-xs mb-1 pulse">⚠ 5 MIN TO TARGET!</div>
+                        )}
+                        {raceState.timeInCar >= raceState.maxStintTime - 5 * 60 * 1000 && raceState.timeInCar < raceState.maxStintTime && (
+                            <div className="text-red-500 font-bold text-xs mb-1 pulse-fast">⚠ 5 MIN TO MAX!</div>
                         )}
                         {raceState.timeInCar >= raceState.maxStintTime && (
                             <div className="text-red-500 font-bold text-xs mb-1 pulse-fast">⚠ OVER MAX TIME!</div>
                         )}
-                        <div className={`orbitron timer-xl ${getTimerColor(raceState.timeInCar, raceState.targetStintTime, raceState.maxStintTime)} ${
-                            raceState.timeInCar >= raceState.maxStintTime ? 'pulse-fast' :
-                            raceState.timeInCar >= raceState.targetStintTime ? 'pulse' : ''
-                        }`}>
-                            {formatTime(raceState.timeInCar)}
-                        </div>
-                        <div className="flex gap-3 mt-1 text-xs">
-                            <div className="text-gray-400">TGT: <span className="text-yellow-400 orbitron">{formatTimeShort(raceState.targetStintTime)}</span></div>
-                            <div className="text-gray-400">MAX: <span className="text-red-500 orbitron">{formatTimeShort(raceState.maxStintTime)}</span></div>
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <div className={`orbitron timer-xl ${getTimerColor(raceState.timeInCar, raceState.targetStintTime, raceState.maxStintTime)} ${
+                                    raceState.timeInCar >= raceState.maxStintTime ? 'pulse-fast' :
+                                    raceState.timeInCar >= raceState.targetStintTime ? 'pulse' : ''
+                                }`}>
+                                    {formatTime(raceState.timeInCar)}
+                                </div>
+                                {raceState.isRaceActive && raceState.timeInCar > 0 && (
+                                    <div className="text-xs mt-1">
+                                        <span className="text-gray-400">Δ Time off target: </span>
+                                        <span className={`orbitron font-bold ${
+                                            raceState.timeInCar > raceState.currentStintTargetFrozen ? 'text-red-400' : 'text-green-400'
+                                        }`}>
+                                            {(() => {
+                                                const diff = raceState.timeInCar - raceState.currentStintTargetFrozen;
+                                                const sign = diff > 0 ? '+' : diff < 0 ? '-' : '';
+                                                const absDiff = Math.abs(diff);
+                                                const mins = Math.floor(absDiff / 60000);
+                                                const secs = Math.floor((absDiff % 60000) / 1000);
+                                                return `${sign}${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                                            })()}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="flex gap-2 text-xs">
+                                <div className="text-gray-400">TGT: <span className="text-yellow-400 orbitron">{formatTimeShort(raceState.targetStintTime)}</span></div>
+                                <div className="text-gray-400">MAX: <span className="text-red-500 orbitron">{formatTimeShort(raceState.maxStintTime)}</span></div>
+                            </div>
                         </div>
                         {raceState.currentStintTargetCalc > 0 && (
-                            <div className="mt-1 text-xs">
-                                <div className="text-gray-400">Target calc: <span className="text-cyan-400 orbitron">{formatTimeShort(raceState.currentStintTargetCalc)}</span></div>
+                            <div className="mt-1 text-xs flex justify-between items-center">
+                                <div className="text-gray-400">
+                                    This stint: <span className="text-green-400 orbitron font-bold">{formatTimeShort(raceState.currentStintTargetCalc)}</span>
+                                    <span className="text-gray-500 ml-1">(frozen)</span>
+                                </div>
+                                {raceState.currentStintTargetFrozen > 0 && (
+                                    <div className="text-gray-400">
+                                        Stint ends: <span className="text-cyan-400 orbitron font-bold">
+                                            {(() => {
+                                                const timeLeftInCurrentStint = Math.max(0, raceState.currentStintTargetFrozen - raceState.timeInCar);
+                                                const stintEndTime = new Date(Date.now() + timeLeftInCurrentStint);
+                                                return stintEndTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+                                            })()}
+                                        </span>
+                                        <span className="text-gray-500 ml-1">(live)</span>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -296,9 +358,11 @@
                     {/* Time Grid */}
                     <div className="grid grid-cols-2 gap-2 mb-2">
                         <div className="panel p-2 rounded-none text-center">
-                            <div className="text-gray-400 text-xs">STINT LEFT</div>
+                            <div className="text-gray-400 text-xs">
+                                {raceState.timeRemaining <= 0 ? 'OVER TARGET' : 'STINT LEFT'}
+                            </div>
                             <div className={`orbitron timer-md ${raceState.timeRemaining <= 0 ? 'text-red-500' : 'text-green-500'}`}>
-                                {formatTimeShort(raceState.timeRemaining)}
+                                {raceState.timeRemaining <= 0 ? '+' : ''}{formatTimeShort(Math.abs(raceState.timeRemaining))}
                             </div>
                         </div>
                         <div className="panel p-2 rounded-none text-center">
@@ -320,39 +384,12 @@
                             <div className="orbitron timer-sm text-cyan-400">{raceState.stintsRemaining || 0}</div>
                         </div>
                         <div className="panel p-2 rounded-none text-center">
-                            <div className="text-gray-400 text-xs">REQUIRED</div>
+                            <div className="text-gray-400 text-xs">NEXT STINTS</div>
                             <div className="orbitron timer-sm text-cyan-400">
                                 {raceState.isRaceActive ? formatTimeShort(raceState.requiredStintTime) : '--:--'}
                             </div>
                         </div>
                     </div>
-
-                    {/* ENHANCED Optimal Stint Display - Prominent */}
-                    {raceState.optimal && raceState.optimal.confidence > 0 && (
-                        <div className="panel p-3 rounded-none mb-2 border-l-4 border-cyan-500 bg-gradient-to-r from-cyan-900/20 to-transparent">
-                            <div className="flex justify-between items-center mb-2">
-                                <div>
-                                    <div className="text-cyan-400 text-xs font-bold">🎯 OPTIMAL NEXT STINT</div>
-                                    <div className="text-gray-400 text-xs">TIME LEFT ÷ STINTS LEFT</div>
-                                    <div className="orbitron timer-lg text-cyan-400 font-black">
-                                        {formatTime(raceState.optimal.optimalTime)}
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-gray-400 text-xs">CONFIDENCE</div>
-                                    <div className="orbitron text-2xl font-bold text-cyan-400">{raceState.optimal.confidence}%</div>
-                                </div>
-                            </div>
-                            <div className="text-white text-sm font-bold mb-1">{raceState.optimal.recommendation}</div>
-                            <div className="grid grid-cols-5 gap-2 text-xs">
-                                <div><span className="text-gray-400">AVG:</span> <span className="orbitron text-white">{formatTimeShort(raceState.optimal.analysis.averageStintTime)}</span></div>
-                                <div><span className="text-gray-400">CALC:</span> <span className="orbitron text-cyan-400">{formatTimeShort(raceState.optimal.analysis.calculatedTime)}</span></div>
-                                <div><span className="text-gray-400">DIFF:</span> <span className={`orbitron ${raceState.optimal.analysis.paceDifferencePercent < 0 ? 'text-red-400' : 'text-green-400'}`}>{raceState.optimal.analysis.paceDifferencePercent > 0 ? '+' : ''}{raceState.optimal.analysis.paceDifferencePercent}%</span></div>
-                                <div><span className="text-gray-400">ON TGT:</span> <span className="orbitron text-white">{raceState.optimal.analysis.stintsAtTarget}/{raceState.optimal.analysis.totalStintsCompleted}</span></div>
-                                <div><span className="text-gray-400">OVER:</span> <span className="orbitron text-red-400">{raceState.optimal.analysis.stintsOverMax}</span></div>
-                            </div>
-                        </div>
-                    )}
 
                     {/* Upcoming Driver Alert */}
                     {raceState.isRaceActive && getNextDriver() && (
@@ -362,17 +399,29 @@
                                     <div className="text-yellow-400 text-xs font-bold">👤 NEXT DRIVER</div>
                                     <div className="text-white text-lg font-bold">{getNextDriver()}</div>
                                     {raceState.currentStintTargetCalc > 0 && (
-                                        <div className="text-xs mt-1">
-                                            <span className="text-gray-400">Time to change: </span>
-                                            <span className={`orbitron font-bold ${
-                                                (raceState.currentStintTargetCalc - raceState.timeInCar) <= 0
-                                                    ? 'text-red-500'
-                                                    : (raceState.currentStintTargetCalc - raceState.timeInCar) <= 5 * 60 * 1000
-                                                        ? 'text-yellow-400'
-                                                        : 'text-green-500'
-                                            }`}>
-                                                {formatTimeShort(Math.max(0, raceState.currentStintTargetCalc - raceState.timeInCar))}
-                                            </span>
+                                        <div className="text-xs mt-1 flex justify-between items-center">
+                                            <div>
+                                                <span className="text-gray-400">Time to change: </span>
+                                                <span className={`orbitron font-bold ${
+                                                    (raceState.currentStintTargetCalc - raceState.timeInCar) <= 0
+                                                        ? 'text-red-500'
+                                                        : (raceState.currentStintTargetCalc - raceState.timeInCar) <= 5 * 60 * 1000
+                                                            ? 'text-yellow-400'
+                                                            : 'text-green-500'
+                                                }`}>
+                                                    {formatTimeShort(Math.max(0, raceState.currentStintTargetCalc - raceState.timeInCar))}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-400">Change at: </span>
+                                                <span className="orbitron font-bold text-cyan-400">
+                                                    {(() => {
+                                                        const timeRemaining = Math.max(0, raceState.currentStintTargetCalc - raceState.timeInCar);
+                                                        const estimatedTime = new Date(Date.now() + timeRemaining);
+                                                        return estimatedTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+                                                    })()}
+                                                </span>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -389,9 +438,11 @@
                     {/* Controls */}
                     <div className="panel p-2 rounded-none mb-2">
                         <input
+                            ref={driverInputRef}
                             type="text"
                             value={driverName}
                             onChange={(e) => setDriverName(e.target.value)}
+                            onFocus={(e) => e.target.select()}
                             onKeyPress={(e) => {
                                 if (e.key === 'Enter') {
                                     if (!raceState.isRaceActive) startRace();
@@ -415,6 +466,61 @@
                             <button onClick={endRace} disabled={!raceState.isRaceActive} className="btn rounded-none py-1 bg-red-900">END</button>
                         </div>
                     </div>
+
+                    {/* Remaining Stints Plan Table */}
+                    {raceState.isRaceActive && raceState.stintsRemaining > 1 && (
+                        <div className="panel p-3 rounded-none mb-2 flex-1 flex flex-col overflow-hidden">
+                            <div className="text-cyan-400 text-xs font-bold mb-2">📋 REMAINING STINTS PLAN</div>
+                            <div className="flex-1 overflow-y-auto">
+                                <table className="w-full text-xs">
+                                    <thead className="sticky top-0 bg-gray-900">
+                                        <tr className="text-gray-400 border-b border-gray-700">
+                                            <th className="text-left py-1">Stint</th>
+                                            <th className="text-right py-1">Duration</th>
+                                            <th className="text-right py-1">End Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {Array.from({ length: raceState.stintsRemaining - 1 }, (_, i) => {
+                                            const futureStintIndex = i + 1; // Skip current stint (index 0)
+                                            const stintNumber = raceState.driverChanges + futureStintIndex + 1;
+
+                                            // Calculate cumulative time for end time
+                                            // Start with current stint total
+                                            const currentStintTotal = Math.max(0, raceState.currentStintTargetFrozen - raceState.timeInCar) + raceState.timeInCar;
+                                            // Add all future stints before this one (i stints, since futureStintIndex = i + 1)
+                                            const cumulativeTime = currentStintTotal + (raceState.requiredStintTime * futureStintIndex);
+
+                                            // Calculate end time based on race start
+                                            const raceStartTime = raceState.raceStartTime ? new Date(raceState.raceStartTime) : new Date();
+                                            const endTime = new Date(raceStartTime.getTime() + cumulativeTime);
+                                            const endTimeStr = endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+
+                                            const duration = raceState.requiredStintTime;
+
+                                            return (
+                                                <tr key={i} className="text-white">
+                                                    <td className="py-1">
+                                                        <span>#{stintNumber}</span>
+                                                    </td>
+                                                    <td className="text-right orbitron">
+                                                        {formatTimeShort(duration)}
+                                                    </td>
+                                                    <td className="text-right orbitron">
+                                                        {endTimeStr}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="mt-2 pt-2 border-t border-gray-700 flex justify-between text-xs">
+                                <span className="text-gray-400">Total Remaining:</span>
+                                <span className="orbitron text-white font-bold">{formatTime(raceState.totalRaceTimeRemaining)}</span>
+                            </div>
+                        </div>
+                    )}
 
                     {/* History */}
                     <div className="panel p-2 rounded-none flex-1 overflow-hidden">
@@ -491,7 +597,8 @@
                 totalRaceTime: 6,
                 maxDriverChanges: 12,
                 plannedChanges: 11,
-                simulationMode: false
+                simulationMode: false,
+                equalizeDrivers: false
             });
 
             useEffect(() => {
@@ -573,13 +680,20 @@
                                         className="w-full px-2 py-1 bg-black border border-gray-700 text-white orbitron"
                                     />
                                 </div>
-                                <div>
+                                <div className="flex gap-4">
                                     <label className="flex items-center gap-1 cursor-pointer mt-4">
                                         <input type="checkbox" checked={settings.simulationMode}
                                             onChange={(e) => setSettings({...settings, simulationMode: e.target.checked})}
                                             className="w-4 h-4"
                                         />
                                         <span className="text-white font-bold">SIM</span>
+                                    </label>
+                                    <label className="flex items-center gap-1 cursor-pointer mt-4">
+                                        <input type="checkbox" checked={settings.equalizeDrivers}
+                                            onChange={(e) => setSettings({...settings, equalizeDrivers: e.target.checked})}
+                                            className="w-4 h-4"
+                                        />
+                                        <span className="text-white font-bold text-xs">EQUALIZE DRIVERS</span>
                                     </label>
                                 </div>
                             </div>
