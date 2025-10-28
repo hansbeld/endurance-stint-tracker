@@ -425,6 +425,7 @@
                             type="text"
                             value={driverName}
                             onChange={(e) => setDriverName(e.target.value)}
+                            onFocus={(e) => e.target.select()}
                             onKeyPress={(e) => {
                                 if (e.key === 'Enter') {
                                     if (!raceState.isRaceActive) startRace();
