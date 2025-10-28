@@ -269,11 +269,14 @@ app.get('/api/race-state/:carNumber', (req, res) => {
     ? raceData.currentStintTargetFrozen
     : raceData.targetStintTime;
 
-  // 2. LIVE FUTURE TARGET for planning next stints (excludes current stint)
+  // 2. LIVE FUTURE TARGET for planning next stints
+  // Calculate based on time remaining AFTER current stint finishes at target
   let futureStintsRequired = plannedCalc.requiredStintTime;
   if (raceData.isRaceActive && raceData.stintStartTime && plannedCalc.stintsRemaining > 1) {
-    // Time remaining AFTER this stint completes
-    const futureRaceTime = totalRaceTimeRemaining - timeInCar;
+    // Time left to complete current stint at frozen target
+    const timeLeftInCurrentStint = Math.max(0, currentStintTarget - timeInCar);
+    // Time remaining for future stints = total remaining - time left in current
+    const futureRaceTime = totalRaceTimeRemaining - timeLeftInCurrentStint;
     // Stints remaining AFTER this stint (exclude current)
     const futureStints = plannedCalc.stintsRemaining - 1;
 
