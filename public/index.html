@@ -330,7 +330,15 @@
                                 </div>
                                 {raceState.futureStintsRequired > 0 && raceState.stintsRemaining > 1 && (
                                     <div className="text-gray-400">
-                                        Next stints: <span className="text-cyan-400 orbitron font-bold">{formatTimeShort(raceState.futureStintsRequired)}</span>
+                                        Predicted end: <span className="text-cyan-400 orbitron font-bold">
+                                            {(() => {
+                                                const timeLeftInCurrentStint = Math.max(0, raceState.currentStintTargetFrozen - raceState.timeInCar);
+                                                const futureStintsTime = raceState.futureStintsRequired * (raceState.stintsRemaining - 1);
+                                                const totalTimeFromNow = timeLeftInCurrentStint + futureStintsTime;
+                                                const predictedEndTime = new Date(Date.now() + totalTimeFromNow);
+                                                return predictedEndTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+                                            })()}
+                                        </span>
                                         <span className="text-gray-500 ml-1">(live)</span>
                                     </div>
                                 )}
