@@ -433,7 +433,7 @@
                     </div>
 
                     {/* Remaining Stints Plan Table */}
-                    {raceState.isRaceActive && raceState.stintsRemaining > 0 && (
+                    {raceState.isRaceActive && raceState.stintsRemaining > 1 && (
                         <div className="panel p-3 rounded-none mb-2 flex-1 flex flex-col overflow-hidden">
                             <div className="text-cyan-400 text-xs font-bold mb-2">📋 REMAINING STINTS PLAN</div>
                             <div className="flex-1 overflow-y-auto">
@@ -446,37 +446,27 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {Array.from({ length: raceState.stintsRemaining }, (_, i) => {
-                                            const stintNumber = raceState.driverChanges + i + 1;
-                                            const isCurrentStint = i === 0;
+                                        {Array.from({ length: raceState.stintsRemaining - 1 }, (_, i) => {
+                                            const futureStintIndex = i + 1; // Skip current stint (index 0)
+                                            const stintNumber = raceState.driverChanges + futureStintIndex + 1;
 
                                             // Calculate cumulative time for end time
-                                            let cumulativeTime = 0;
-                                            if (isCurrentStint) {
-                                                // For current stint: time already in car + time remaining to frozen target
-                                                const timeLeftInStint = Math.max(0, raceState.currentStintTargetFrozen - raceState.timeInCar);
-                                                cumulativeTime = raceState.timeInCar + timeLeftInStint;
-                                            } else {
-                                                // For current stint contribution
-                                                const currentStintTotal = Math.max(0, raceState.currentStintTargetFrozen - raceState.timeInCar) + raceState.timeInCar;
-                                                // Plus all future stints before this one
-                                                cumulativeTime = currentStintTotal + (raceState.requiredStintTime * i);
-                                            }
+                                            // Start with current stint total
+                                            const currentStintTotal = Math.max(0, raceState.currentStintTargetFrozen - raceState.timeInCar) + raceState.timeInCar;
+                                            // Add all future stints before this one (i stints, since futureStintIndex = i + 1)
+                                            const cumulativeTime = currentStintTotal + (raceState.requiredStintTime * futureStintIndex);
 
                                             // Calculate end time based on race start
                                             const raceStartTime = raceState.raceStartTime ? new Date(raceState.raceStartTime) : new Date();
                                             const endTime = new Date(raceStartTime.getTime() + cumulativeTime);
                                             const endTimeStr = endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 
-                                            const duration = isCurrentStint ? raceState.currentStintTargetFrozen : raceState.requiredStintTime;
+                                            const duration = raceState.requiredStintTime;
 
                                             return (
-                                                <tr key={i} className={`${
-                                                    isCurrentStint ? 'bg-cyan-900/30 text-cyan-400 font-bold' : 'text-white'
-                                                }`}>
+                                                <tr key={i} className="text-white">
                                                     <td className="py-1">
                                                         <span>#{stintNumber}</span>
-                                                        {isCurrentStint && <span className="ml-2 text-xs">← NOW</span>}
                                                     </td>
                                                     <td className="text-right orbitron">
                                                         {formatTimeShort(duration)}
