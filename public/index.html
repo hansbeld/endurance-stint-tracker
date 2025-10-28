@@ -90,6 +90,7 @@
             const [driverName, setDriverName] = useState('');
             const [lastTargetReached, setLastTargetReached] = useState(false);
             const audioRef = useRef(null);
+            const driverInputRef = useRef(null);
 
             useEffect(() => {
                 audioRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE');
@@ -158,6 +159,8 @@
                 const nextDriver = getNextDriver();
                 if (nextDriver) {
                     setDriverName(nextDriver);
+                    // Focus the input to make it clear the user can edit
+                    setTimeout(() => driverInputRef.current?.focus(), 0);
                 }
             };
 
@@ -418,6 +421,7 @@
                     {/* Controls */}
                     <div className="panel p-2 rounded-none mb-2">
                         <input
+                            ref={driverInputRef}
                             type="text"
                             value={driverName}
                             onChange={(e) => setDriverName(e.target.value)}
