@@ -44,6 +44,9 @@
             border: 1px solid rgba(255,255,255,0.1);
             position: relative;
         }
+        .blue-car .panel {
+            background: linear-gradient(135deg, rgba(0, 31, 66, 0.95), rgba(0, 21, 46, 0.95));
+        }
         .panel::before {
             content: '';
             position: absolute;
@@ -246,7 +249,7 @@
             }
 
             return (
-                <div className="flex flex-col h-full" style={backgroundColor ? {backgroundColor} : {}}>
+                <div className={`flex flex-col h-full ${backgroundColor ? 'blue-car' : ''}`}>
                     {/* Header */}
                     <div className="panel p-2 rounded-none mb-2">
                         <div className="flex justify-between items-center">
