@@ -89,6 +89,7 @@
             const [raceState, setRaceState] = useState(null);
             const [driverName, setDriverName] = useState('');
             const [lastTargetReached, setLastTargetReached] = useState(false);
+            const [currentTime, setCurrentTime] = useState(new Date());
             const audioRef = useRef(null);
             const driverInputRef = useRef(null);
 
@@ -109,6 +110,13 @@
                     setLastTargetReached(false);
                 }
             }, [raceState?.targetStintReached]);
+
+            useEffect(() => {
+                const clockInterval = setInterval(() => {
+                    setCurrentTime(new Date());
+                }, 1000);
+                return () => clearInterval(clockInterval);
+            }, []);
 
             const updateDisplay = async () => {
                 try {
@@ -254,6 +262,9 @@
                                 )}
                             </div>
                             <div className="text-right">
+                                <div className="orbitron text-sm text-gray-400 mb-1">
+                                    {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+                                </div>
                                 <div className={`orbitron text-lg font-bold ${
                                     !raceState.isRaceActive ? 'text-gray-500' :
                                     raceState.isPaused ? 'text-yellow-400' : 'text-green-500'
@@ -328,15 +339,13 @@
                                     This stint: <span className="text-green-400 orbitron font-bold">{formatTimeShort(raceState.currentStintTargetCalc)}</span>
                                     <span className="text-gray-500 ml-1">(frozen)</span>
                                 </div>
-                                {raceState.futureStintsRequired > 0 && raceState.stintsRemaining > 1 && (
+                                {raceState.currentStintTargetFrozen > 0 && (
                                     <div className="text-gray-400">
-                                        Predicted end: <span className="text-cyan-400 orbitron font-bold">
+                                        Stint ends: <span className="text-cyan-400 orbitron font-bold">
                                             {(() => {
                                                 const timeLeftInCurrentStint = Math.max(0, raceState.currentStintTargetFrozen - raceState.timeInCar);
-                                                const futureStintsTime = raceState.futureStintsRequired * (raceState.stintsRemaining - 1);
-                                                const totalTimeFromNow = timeLeftInCurrentStint + futureStintsTime;
-                                                const predictedEndTime = new Date(Date.now() + totalTimeFromNow);
-                                                return predictedEndTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+                                                const stintEndTime = new Date(Date.now() + timeLeftInCurrentStint);
+                                                return stintEndTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
                                             })()}
                                         </span>
                                         <span className="text-gray-500 ml-1">(live)</span>
