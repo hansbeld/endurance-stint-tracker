@@ -85,7 +85,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        function CarPanel({ carNumber, carName, drivers }) {
+        function CarPanel({ carNumber, carName, drivers, backgroundColor }) {
             const [raceState, setRaceState] = useState(null);
             const [driverName, setDriverName] = useState('');
             const [lastTargetReached, setLastTargetReached] = useState(false);
@@ -246,7 +246,7 @@
             }
 
             return (
-                <div className="flex flex-col h-full">
+                <div className="flex flex-col h-full" style={backgroundColor ? {backgroundColor} : {}}>
                     {/* Header */}
                     <div className="panel p-2 rounded-none mb-2">
                         <div className="flex justify-between items-center">
@@ -636,7 +636,10 @@
                 <div className="min-h-screen bg-black p-2">
                     {/* Header */}
                     <div className="flex justify-between items-center mb-2">
-                        <h1 className="orbitron text-xl font-black text-red-500">TWO-CAR TRACKER</h1>
+                        <div className="flex items-center gap-3">
+                            <img src="/logo.png" alt="Logo" className="h-12" />
+                            <h1 className="orbitron text-xl font-black text-red-500">TWO-CAR TRACKER</h1>
+                        </div>
                         <button onClick={() => setSettingsOpen(!settingsOpen)} className="btn rounded-none">SETTINGS</button>
                     </div>
 
@@ -712,6 +715,7 @@
                                 carNumber={car.number}
                                 carName={car.name}
                                 drivers={car.drivers}
+                                backgroundColor={car.number === "47" ? "#001f42" : undefined}
                             />
                         ))}
                     </div>
